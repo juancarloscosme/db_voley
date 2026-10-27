@@ -1,0 +1,30 @@
+# Dependencias (NUNCA subir, se reinstalan con npm install)
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Variables de entorno (contienen contraseñas y secretos)
+.env
+.env.local
+.env.production
+.env.development
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Archivos de editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Builds y temporales
+dist/
+build/
+tmp/
