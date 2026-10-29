@@ -88,7 +88,12 @@
         <option value="">Cargando jugadores...</option>
       </select>
       
-      <input id="pago_concepto" placeholder="Concepto (mensualidad)">
+      <!-- NUEVO CAMPO CON SUGERENCIAS DE CLASES -->
+      <input list="lista-clases-concepto" id="pago_concepto" placeholder="Concepto (o elige una clase)">
+      <datalist id="lista-clases-concepto">
+        <!-- Aquí Javascript inyectará las clases -->
+      </datalist>
+
       <input id="pago_monto" type="number" placeholder="Monto S/">
     
       <label style="font-size: 0.9em; margin-left: 5px;">Inicio:</label>
@@ -103,7 +108,6 @@
 
       <button onclick="crearPago()">Registrar</button>
       <div id="lista-pagos"></div>
-    </section>
     
     <!-- SECCIÓN DE INVENTARIO ACTUALIZADA -->
     <section id="inventario" class="seccion oculto">

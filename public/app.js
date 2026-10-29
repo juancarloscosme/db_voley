@@ -71,6 +71,7 @@ function mostrar(id) {
   if (id === 'pagos') {
     cargarPagos();
     cargarSelectJugadores();
+    cargarSelectConceptos(); // <--- AGREGAR ESTA LÍNEA
   }
   if (id === 'inventario') cargarInventario();
   if (id === 'clases') cargarClases();
@@ -587,6 +588,22 @@ async function cargarSelectJugadores() {
       jugadores.map(j => `<option value="${j.id}">${j.nombre}</option>`).join('');
   } else {
     document.getElementById('pago_jugador').innerHTML = '<option value="">Error al cargar</option>';
+  }
+}
+
+// Función para llenar las sugerencias de concepto con las clases
+async function cargarSelectConceptos() {
+  try {
+    const res = await fetch(`${API}/clases`, { headers: headers() });
+    if (res.ok) {
+      const clases = await res.json();
+      const datalist = document.getElementById('lista-clases-concepto');
+      
+      // Llenamos el datalist con los nombres de las clases
+      datalist.innerHTML = clases.map(c => `<option value="${c.nombre}">`).join('');
+    }
+  } catch (error) {
+    console.error('Error al cargar clases para conceptos:', error);
   }
 }
 
