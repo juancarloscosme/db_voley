@@ -507,19 +507,45 @@ async function cargarSelectJugadores() {
   }
 }
 
-// ---------- REPORTE EXCEL ----------
-async function descargarExcel() {
+
+// Función para obtener los datos según los filtros de la pantalla
+async function obtenerDatosFiltrados() {
   const res = await fetch(`${API}/pagos`, { headers: headers() });
   const data = await res.json();
+  
+  const textoBusqueda = document.getElementById('buscar_pago').value.toLowerCase();
+  const filtroEstado = document.getElementById('filtro_estado').value;
+  const filtroMes = document.getElementById('filtro_mes').value;
+  const filtroAnio = document.getElementById('filtro_anio').value;
+
+  return data.filter(p => {
+    const coincideTexto = p.nombre_jugador.toLowerCase().includes(textoBusqueda) || (p.concepto && p.concepto.toLowerCase().includes(textoBusqueda));
+    const coincideEstado = filtroEstado === 'todos' || p.estado === filtroEstado;
+
+    let coincideTiempo = true;
+    if (p.fecha_inicio) {
+      const fechaP = new Date(p.fecha_inicio);
+      if (filtroMes !== 'todos' && fechaP.getMonth() !== parseInt(filtroMes)) coincideTiempo = false;
+      if (filtroAnio !== 'todos' && fechaP.getFullYear() !== parseInt(filtroAnio)) coincideTiempo = false;
+    } else if (filtroMes !== 'todos' || filtroAnio !== 'todos') {
+      coincideTiempo = false; 
+    }
+
+    return coincideTexto && coincideEstado && coincideTiempo;
+  });
+}
+
+// ---------- REPORTE EXCEL ----------
+async function descargarExcel() {
+  // Usamos los datos filtrados
+  const data = await obtenerDatosFiltrados();
 
   if (data.length === 0) {
-    alert('No hay pagos para exportar');
+    alert('No hay pagos para exportar con los filtros actuales.');
     return;
   }
 
-  let csvContent = "data:text/csv;charset=utf-8,";
-  // Agregamos BOM para que Excel reconozca las tildes (ñ, á, etc)
-  csvContent += "\uFEFF"; 
+  let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
   csvContent += "ID,Jugador,Concepto,Monto,Fecha Inicio,Fecha Fin,Estado\n";
 
   data.forEach(p => {
@@ -536,25 +562,34 @@ async function descargarExcel() {
   link.click();
   document.body.removeChild(link);
 }
-
 // ---------- REPORTE PDF ----------
 async function descargarPDF() {
-  const res = await fetch(`${API}/pagos`, { headers: headers() });
-  const data = await res.json();
+  // Usamos los datos filtrados
+  const data = await obtenerDatosFiltrados();
 
   if (data.length === 0) {
-    alert('No hay pagos para exportar');
+    alert('No hay pagos para exportar con los filtros actuales.');
     return;
   }
 
-  // Obtenemos los totales
-  const r = await fetch(`${API}/pagos/resumen`, { headers: headers() });
-  const s = await r.json();
+  // Calculamos los totales SOLO de los datos filtrados
+  let totalPagado = 0;
+  let totalPendiente = 0;
+  let countPagados = 0;
+  let countPendientes = 0;
 
-  // Abrimos una nueva ventana en blanco
+  data.forEach(p => {
+    if (p.estado === 'pagado') {
+      totalPagado += parseFloat(p.monto);
+      countPagados++;
+    } else if (p.estado === 'pendiente') {
+      totalPendiente += parseFloat(p.monto);
+      countPendientes++;
+    }
+  });
+
   const ventana = window.open('', '_blank');
   
-  // Creamos el diseño HTML para el PDF
   let html = `
     <html>
     <head>
@@ -578,8 +613,8 @@ async function descargarPDF() {
       <div class="fecha">Generado el: ${new Date().toLocaleDateString('es-PE')}</div>
       
       <div class="resumen">
-        <div style="color: #27ae60;">Total Pagados: S/ ${s.total_pagado} (${s.pagados} registros)</div>
-        <div style="color: #f39c12;">Total Pendientes: S/ ${s.total_pendiente} (${s.pendientes} registros)</div>
+        <div style="color: #27ae60;">Total Pagados: S/ ${totalPagado.toFixed(2)} (${countPagados} registros)</div>
+        <div style="color: #f39c12;">Total Pendientes: S/ ${totalPendiente.toFixed(2)} (${countPendientes} registros)</div>
       </div>
 
       <table>
@@ -617,7 +652,6 @@ async function descargarPDF() {
         </tbody>
       </table>
       <script>
-        // Esto abre automáticamente la ventana de impresión (Guardar como PDF)
         window.onload = function() { window.print(); }
       </script>
     </body>
