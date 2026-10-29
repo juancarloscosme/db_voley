@@ -86,13 +86,18 @@ async function cargarPagos() {
   const res = await fetch(`${API}/pagos`, { headers: headers() });
   const data = await res.json();
   
-  document.getElementById('lista-pagos').innerHTML = data.map(p => `
+  document.getElementById('lista-pagos').innerHTML = data.map(p => {
+    // Formatear fechas para que se vean bonitas (DD/MM/AAAA)
+    const fInicio = p.fecha_inicio ? p.fecha_inicio.split('T')[0] : 'N/A';
+    const fFin = p.fecha_vencimiento ? p.fecha_vencimiento.split('T')[0] : 'N/A';
+    
+    return `
     <div class="row">
       <div>
         <strong>#${p.id} - ${p.nombre_jugador}</strong> <br>
         <span style="font-size: 0.9em; color: #555;">
-          ${p.concepto} - S/ ${p.monto} 
-          ${p.fecha_vencimiento ? `(Vence: ${p.fecha_vencimiento.split('T')[0]})` : ''}
+          ${p.concepto} - S/ ${p.monto} <br>
+          <strong>Del:</strong> ${fInicio} | <strong>Al:</strong> ${fFin}
         </span>
       </div>
       
@@ -102,20 +107,16 @@ async function cargarPagos() {
         ${p.estado === 'pendiente' 
           ? `
             <button onclick="pagar(${p.id})" style="background: #2ecc71; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Pagar</button>
-            <!-- ELIMINAR SOLO SI ESTÁ PENDIENTE -->
-            <button onclick="eliminarPago(${p.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Eliminar registro">❌</button>
-          ` 
-          : ''}
+            <button onclick="eliminarPago(${p.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>
+          ` : ''}
 
         ${p.estado === 'pagado' 
-          ? `
-            <!-- SOLO ANULAR SI ESTÁ PAGADO -->
-            <button onclick="anularPago(${p.id})" style="background: #f39c12; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Anular</button>
-          ` 
+          ? `<button onclick="anularPago(${p.id})" style="background: #f39c12; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Anular</button>` 
           : ''}
       </div>
     </div>
-  `).join('');
+    `;
+  }).join('');
 
   const r = await fetch(`${API}/pagos/resumen`, { headers: headers() });
   const s = await r.json();
@@ -141,20 +142,48 @@ async function eliminarPago(id) {
 }
 
 async function crearPago() {
+  const jugador_id = document.getElementById('pago_jugador').value;
+  const concepto = document.getElementById('pago_concepto').value;
+  const monto = document.getElementById('pago_monto').value;
+  const fechaInicioVal = document.getElementById('pago_fecha_inicio').value;
+  const duracion = parseInt(document.getElementById('pago_duracion').value);
+  const tipo = document.getElementById('pago_tipo_duracion').value;
+
+  if (!jugador_id || !concepto || !monto || !fechaInicioVal || !duracion) {
+    alert('Por favor, llena todos los campos, incluyendo la fecha de inicio y la duración.');
+    return;
+  }
+
+  // Calculamos la fecha de fin a partir de la fecha de inicio elegida
+  const fechaInicio = new Date(fechaInicioVal + 'T00:00:00'); // Evita problemas de zona horaria
+  const fechaFin = new Date(fechaInicio); 
+  
+  if (tipo === 'dias') {
+    fechaFin.setDate(fechaFin.getDate() + duracion);
+  } else if (tipo === 'meses') {
+    fechaFin.setMonth(fechaFin.getMonth() + duracion);
+  } else if (tipo === 'anios') {
+    fechaFin.setFullYear(fechaFin.getFullYear() + duracion);
+  }
+
+  const fechaFinString = fechaFin.toISOString().split('T')[0];
+
   await fetch(`${API}/pagos`, {
     method: 'POST', headers: headers(),
     body: JSON.stringify({
-      jugador_id: document.getElementById('pago_jugador').value,
-      concepto: document.getElementById('pago_concepto').value,
-      monto: document.getElementById('pago_monto').value,
-      fecha_vencimiento: document.getElementById('pago_venc').value
+      jugador_id: jugador_id,
+      concepto: concepto,
+      monto: monto,
+      fecha_inicio: fechaInicioVal, // Enviamos la que eligió el usuario
+      fecha_vencimiento: fechaFinString // Enviamos la calculada
     })
   });
   
   // Limpiar cajas
   document.getElementById('pago_concepto').value = '';
   document.getElementById('pago_monto').value = '';
-  document.getElementById('pago_venc').value = '';
+  document.getElementById('pago_fecha_inicio').value = '';
+  document.getElementById('pago_duracion').value = '';
   
   cargarPagos();
 }

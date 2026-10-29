@@ -7,11 +7,12 @@ router.use(verificarToken);
 // Registrar pago pendiente
 router.post('/', permitirRoles('admin', 'cajero'), async (req, res) => {
   try {
-    const { jugador_id, concepto, monto, fecha_vencimiento } = req.body;
+    const { jugador_id, concepto, monto, fecha_inicio, fecha_vencimiento } = req.body;
+    
     const [result] = await pool.query(
-      `INSERT INTO pagos (jugador_id, concepto, monto, fecha_vencimiento, estado, registrado_por)
-       VALUES (?, ?, ?, ?, 'pendiente', ?)`,
-      [jugador_id, concepto, monto, fecha_vencimiento, req.usuario.id]
+      `INSERT INTO pagos (jugador_id, concepto, monto, fecha_inicio, fecha_vencimiento, estado, registrado_por)
+       VALUES (?, ?, ?, ?, ?, 'pendiente', ?)`,
+      [jugador_id, concepto, monto, fecha_inicio, fecha_vencimiento, req.usuario.id]
     );
     const [rows] = await pool.query('SELECT * FROM pagos WHERE id = ?', [result.insertId]);
     res.json(rows[0]);

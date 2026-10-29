@@ -34,7 +34,20 @@
       
       <input id="pago_concepto" placeholder="Concepto (mensualidad)">
       <input id="pago_monto" type="number" placeholder="Monto S/">
-      <input id="pago_venc" type="date">
+    
+<!-- NUEVO: Fecha de inicio -->
+      <label style="font-size: 0.9em; margin-left: 5px;">Inicio:</label>
+      <input id="pago_fecha_inicio" type="date" style="width: 130px;">
+
+      <!-- Duración -->
+      <input id="pago_duracion" type="number" placeholder="Duración" style="width: 80px;" min="1">
+      <select id="pago_tipo_duracion">
+        <option value="dias">Días</option>
+        <option value="meses" selected>Meses</option>
+        <option value="anios">Años</option>
+      </select>
+
+
       <button onclick="crearPago()">Registrar</button>
       <div id="lista-pagos"></div>
     </section>

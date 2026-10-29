@@ -127,3 +127,4 @@ CREATE TABLE evaluaciones (
     FOREIGN KEY (entrenador_id) REFERENCES usuarios(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+ALTER TABLE pagos ADD COLUMN fecha_inicio DATE DEFAULT NULL AFTER monto;
