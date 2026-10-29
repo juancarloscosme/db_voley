@@ -47,7 +47,6 @@ if (window.location.pathname.includes('dashboard')) {
   document.getElementById('user-info').textContent =
     `${localStorage.getItem('nombre')} (${rol})`;
 
-  // NUEVO: Mostrar botón de usuarios solo si es admin
   if (rol === 'admin') {
     document.getElementById('btn-usuarios').classList.remove('oculto');
     cargarUsuarios();
@@ -58,7 +57,6 @@ if (window.location.pathname.includes('dashboard')) {
   cargarClases();
 }
 
-// Modifica tu función mostrar() para que cargue el select
 function mostrar(id) {
   if (id === 'usuarios' && localStorage.getItem('rol') !== 'admin') {
     alert('No tienes permisos para ver esta sección');
@@ -69,7 +67,7 @@ function mostrar(id) {
   
   if (id === 'pagos') {
     cargarPagos();
-    cargarSelectJugadores(); // <--- AGREGAMOS ESTO
+    cargarSelectJugadores();
   }
   if (id === 'inventario') cargarInventario();
   if (id === 'clases') cargarClases();
@@ -128,18 +126,16 @@ async function cargarInventario() {
   const data = await res.json();
   document.getElementById('lista-inventario').innerHTML = data.map(i => `
     <div class="row">
-      <span>${i.item} (${i.categoria}) x${i.cantidad}</span>
+      <span>${i.item} (${i.categoria}) x${i.cantidad} - Vida útil: ${i.vida_util_meses} meses</span>
       <div style="display: flex; gap: 10px; align-items: center;">
         <span class="estado">${i.estado}</span>
         ${i.prestado_a ? `<span>Prestado a user ${i.prestado_a}</span>` : ''}
-        <!-- NUEVO BOTÓN ELIMINAR -->
         <button onclick="eliminarItem(${i.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>
       </div>
     </div>
   `).join('');
 }
 
-// NUEVA FUNCIÓN PARA ELIMINAR
 async function eliminarItem(id) {
   if (!confirm('¿Estás seguro de eliminar este item del inventario?')) return;
   
@@ -149,7 +145,7 @@ async function eliminarItem(id) {
   });
   
   if (res.ok) {
-    cargarInventario(); // Recargar la lista
+    cargarInventario();
   } else {
     alert('Error al eliminar el item');
   }
@@ -167,31 +163,24 @@ async function crearItem() {
     })
   });
   
-  // Limpiar cajas de texto
   document.getElementById('inv_item').value = '';
   document.getElementById('inv_cat').value = '';
   document.getElementById('inv_cant').value = '';
   document.getElementById('inv_vida').value = '';
   
-  // Recargar la lista
   cargarInventario();
 }
 
 // ---------- CLASES ----------
-async function crearClase() {
-  await fetch(`${API}/clases`, {
-    // ... fetch ...
-  });
-  
-  // Limpiar
-  document.getElementById('cl_nombre').value = '';
-  document.getElementById('cl_cat').value = '';
-  document.getElementById('cl_dia').value = '';
-  document.getElementById('cl_ini').value = '';
-  document.getElementById('cl_fin').value = '';
-  document.getElementById('cl_cancha').value = '';
-
-  cargarClases();
+async function cargarClases() {
+  const res = await fetch(`${API}/clases`, { headers: headers() });
+  const data = await res.json();
+  document.getElementById('lista-clases').innerHTML = data.map(c => `
+    <div class="row">
+      <span>${c.nombre} - ${c.categoria} - ${c.dia_semana} ${c.hora_inicio}-${c.hora_fin}</span>
+      <span>${c.cancha || ''}</span>
+    </div>
+  `).join('');
 }
 
 async function crearClase() {
@@ -206,6 +195,15 @@ async function crearClase() {
       cancha: document.getElementById('cl_cancha').value
     })
   });
+
+  // Limpiar campos
+  document.getElementById('cl_nombre').value = '';
+  document.getElementById('cl_cat').value = '';
+  document.getElementById('cl_dia').value = '';
+  document.getElementById('cl_ini').value = '';
+  document.getElementById('cl_fin').value = '';
+  document.getElementById('cl_cancha').value = '';
+
   cargarClases();
 }
 
@@ -222,7 +220,6 @@ async function cargarUsuarios() {
   `).join('');
 }
 
-
 async function crearUsuario() {
   const nombre = document.getElementById('usr_nombre').value;
   const email = document.getElementById('usr_email').value;
@@ -236,7 +233,7 @@ async function crearUsuario() {
 
   const res = await fetch(`${API}/auth/registro`, {
     method: 'POST',
-    headers: headers(), // <--- LA MAGIA ESTÁ AQUÍ (Envía el token JWT)
+    headers: headers(),
     body: JSON.stringify({ nombre, email, password, rol })
   });
 
@@ -253,7 +250,7 @@ async function crearUsuario() {
   }
 }
 
-// Agrega esta función para llenar el select
+// ---------- SELECT DE JUGADORES PARA PAGOS ----------
 async function cargarSelectJugadores() {
   const res = await fetch(`${API}/usuarios/jugadores`, { headers: headers() });
   if (res.ok) {
@@ -269,4 +266,3 @@ async function cargarSelectJugadores() {
       jugadores.map(j => `<option value="${j.id}">${j.nombre} (ID: ${j.id})</option>`).join('');
   }
 }
-
