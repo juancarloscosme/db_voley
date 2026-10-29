@@ -73,4 +73,22 @@ router.get('/jugadores', async (req, res) => {
   }
 });
 
+const bcrypt = require('bcryptjs'); // Asegúrate de tener esto al inicio del archivo
+
+// Cambiar contraseña de un usuario
+router.put('/:id/password', permitirRoles('admin'), async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password || password.length < 4) {
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 4 caracteres' });
+    }
+
+    const hash = await bcrypt.hash(password, 10);
+    await pool.query('UPDATE usuarios SET password_hash = ? WHERE id = ?', [hash, req.params.id]);
+    
+    res.json({ mensaje: 'Contraseña actualizada correctamente' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 module.exports = router;

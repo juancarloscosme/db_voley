@@ -494,6 +494,9 @@ async function cargarUsuarios() {
       <div style="display:flex; gap: 8px; align-items:center;">
         <span class="estado">${u.rol}</span>
         
+        <!-- NUEVO BOTÓN DE CONTRASEÑA -->
+        <button onclick="cambiarPassword(${u.id})" style="background: #9b59b6; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Cambiar contraseña">🔑</button>
+
         ${u.rol !== 'admin' ? `
           <button onclick="cambiarEstadoUsuario(${u.id}, ${u.activo})" 
             style="background: ${u.activo === 1 ? '#f39c12' : '#2ecc71'}; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">
@@ -880,4 +883,31 @@ async function descargarPDFInventario() {
 
   ventana.document.write(html);
   ventana.document.close();
+}
+
+
+async function cambiarPassword(id) {
+  // Pedimos la nueva contraseña mediante una ventana
+  const nuevaPass = prompt('Ingresa la nueva contraseña para este usuario:');
+  
+  // Si el usuario cancela o deja vacío, no hacemos nada
+  if (!nuevaPass) return;
+  
+  if (nuevaPass.length < 4) {
+    alert('La contraseña debe tener al menos 4 caracteres.');
+    return;
+  }
+
+  const res = await fetch(`${API}/usuarios/${id}/password`, {
+    method: 'PUT',
+    headers: headers(),
+    body: JSON.stringify({ password: nuevaPass })
+  });
+
+  if (res.ok) {
+    alert('✅ Contraseña actualizada correctamente.');
+  } else {
+    const data = await res.json();
+    alert('Error al cambiar la contraseña: ' + (data.error || 'Intenta de nuevo'));
+  }
 }
