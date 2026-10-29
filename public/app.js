@@ -333,15 +333,69 @@ async function crearItem() {
 }
 
 // ---------- CLASES ----------
+// ---------- CLASES ----------
 async function cargarClases() {
   const res = await fetch(`${API}/clases`, { headers: headers() });
   const data = await res.json();
-  document.getElementById('lista-clases').innerHTML = data.map(c => `
+  
+  document.getElementById('lista-clases').innerHTML = data.map(c => {
+    // Recortamos los segundos para que se vea más limpio (HH:MM)
+    const inicioLimpio = c.hora_inicio ? c.hora_inicio.slice(0, 5) : '';
+    const finLimpio = c.hora_fin ? c.hora_fin.slice(0, 5) : '';
+
+    return `
     <div class="row">
-      <span>${c.nombre} - ${c.categoria} - ${c.dia_semana} ${c.hora_inicio}-${c.hora_fin}</span>
-      <span>${c.cancha || ''}</span>
-    </div>
-  `).join('');
+      <span>${c.nombre} - ${c.categoria} - ${c.dia_semana} ${inicioLimpio} a ${finLimpio}</span>
+      <div style="display:flex; gap: 10px; align-items:center;">
+        <span>${c.cancha || ''}</span>
+        <button onclick="editarClase(${c.id})" style="background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">✏️</button>
+        <button onclick="eliminarClase(${c.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Función para eliminar
+async function eliminarClase(id) {
+  if (!confirm('¿Estás seguro de eliminar esta clase?')) return;
+  const res = await fetch(`${API}/clases/${id}`, { method: 'DELETE', headers: headers() });
+  if (res.ok) cargarClases();
+}
+
+// Función para editar
+async function editarClase(id) {
+  // Buscamos los datos de la clase actual
+  const res = await fetch(`${API}/clases`, { headers: headers() });
+  const data = await res.json();
+  const c = data.find(clase => clase.id === id);
+
+  if (!c) return;
+
+  // Pedimos los nuevos datos con ventanas prompt
+  const nombre = prompt('Nombre de la clase:', c.nombre);
+  const categoria = prompt('Categoría:', c.categoria);
+  const dia = prompt('Día:', c.dia_semana);
+  const inicio = prompt('Hora Inicio (HH:MM):', c.hora_inicio ? c.hora_inicio.slice(0, 5) : '');
+  const fin = prompt('Hora Fin (HH:MM):', c.hora_fin ? c.hora_fin.slice(0, 5) : '');
+  const cancha = prompt('Cancha:', c.cancha);
+
+  // Si el usuario cancela, no hacemos nada
+  if (nombre === null || categoria === null) return;
+
+  // Enviamos los cambios al servidor
+  const updateRes = await fetch(`${API}/clases/${id}`, {
+    method: 'PUT',
+    headers: headers(),
+    body: JSON.stringify({
+      nombre, categoria, dia_semana: dia, hora_inicio: inicio, hora_fin: fin, cancha
+    })
+  });
+
+  if (updateRes.ok) {
+    cargarClases();
+  } else {
+    alert('Error al editar la clase');
+  }
 }
 
 async function crearClase() {

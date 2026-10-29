@@ -69,4 +69,27 @@ router.get('/:clase_id/asistencia', permitirRoles('admin', 'entrenador'), async 
   }
 });
 
+// Eliminar clase
+router.delete('/:id', permitirRoles('admin', 'entrenador'), async (req, res) => {
+  try {
+    await pool.query('DELETE FROM clases WHERE id = ?', [req.params.id]);
+    res.json({ mensaje: 'Clase eliminada' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Actualizar clase (Editar)
+router.put('/:id', permitirRoles('admin', 'entrenador'), async (req, res) => {
+  try {
+    const { nombre, categoria, dia_semana, hora_inicio, hora_fin, cancha } = req.body;
+    await pool.query(
+      `UPDATE clases SET nombre=?, categoria=?, dia_semana=?, hora_inicio=?, hora_fin=?, cancha=? WHERE id=?`,
+      [nombre, categoria, dia_semana, hora_inicio, hora_fin, cancha, req.params.id]
+    );
+    res.json({ mensaje: 'Clase actualizada' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 module.exports = router;
