@@ -90,37 +90,38 @@ async function cargarPagos() {
   
   const textoBusqueda = document.getElementById('buscar_pago').value.toLowerCase();
   const filtroEstado = document.getElementById('filtro_estado').value;
-  const filtroPeriodo = document.getElementById('filtro_periodo').value;
+  
+  // Capturamos los nuevos filtros
+  const filtroMes = document.getElementById('filtro_mes').value;
+  const filtroAnio = document.getElementById('filtro_anio').value;
 
-  const hoy = new Date();
-  const mesActual = hoy.getMonth();
-  const anioActual = hoy.getFullYear();
-
-  // 1. Aplicar los 3 filtros (Texto, Estado y Tiempo)
+  // 1. Aplicar los filtros
   const datosFiltrados = data.filter(p => {
     // Filtro de texto y estado
     const coincideTexto = p.nombre_jugador.toLowerCase().includes(textoBusqueda) || (p.concepto && p.concepto.toLowerCase().includes(textoBusqueda));
     const coincideEstado = filtroEstado === 'todos' || p.estado === filtroEstado;
 
-    // Filtro de tiempo
-    let coincidePeriodo = true;
-    if (filtroPeriodo !== 'todos' && p.fecha_inicio) {
+    // Filtro de tiempo (Mes / Año)
+    let coincideTiempo = true;
+    if (p.fecha_inicio) {
       const fechaP = new Date(p.fecha_inicio);
-      if (filtroPeriodo === 'mes') {
-        coincidePeriodo = (fechaP.getMonth() === mesActual && fechaP.getFullYear() === anioActual);
-      } else if (filtroPeriodo === 'trimestre') {
-        const trimestreActual = Math.floor(mesActual / 3);
-        const trimestreP = Math.floor(fechaP.getMonth() / 3);
-        coincidePeriodo = (trimestreActual === trimestreP && fechaP.getFullYear() === anioActual);
-      } else if (filtroPeriodo === 'anio') {
-        coincidePeriodo = (fechaP.getFullYear() === anioActual);
+      // Validar Mes (si no es "todos")
+      if (filtroMes !== 'todos' && fechaP.getMonth() !== parseInt(filtroMes)) {
+        coincideTiempo = false;
       }
+      // Validar Año (si no es "todos")
+      if (filtroAnio !== 'todos' && fechaP.getFullYear() !== parseInt(filtroAnio)) {
+        coincideTiempo = false;
+      }
+    } else if (filtroMes !== 'todos' || filtroAnio !== 'todos') {
+      // Si el pago no tiene fecha de inicio, y estamos filtrando por fecha, lo ocultamos
+      coincideTiempo = false; 
     }
 
-    return coincideTexto && coincideEstado && coincidePeriodo;
+    return coincideTexto && coincideEstado && coincideTiempo;
   });
 
-  // 2. Dibujar la lista filtrada (igual que antes)
+  // 2. Dibujar la lista
   document.getElementById('lista-pagos').innerHTML = datosFiltrados.map(p => {
     const fInicio = p.fecha_inicio ? p.fecha_inicio.split('T')[0] : 'N/A';
     const fFin = p.fecha_vencimiento ? p.fecha_vencimiento.split('T')[0] : 'N/A';
@@ -141,15 +142,58 @@ async function cargarPagos() {
     </div>`;
   }).join('');
 
-  // 3. Actualizar totales y DIBUJAR EL GRÁFICO
+  if (datosFiltrados.length === 0) {
+    document.getElementById('lista-pagos').innerHTML = '<p style="text-align:center; color:#777; padding: 20px;">No hay pagos registrados en este periodo.</p>';
+  }
+
+  // 3. Actualizar los totales generales (opcional: podrías sumar solo los filtrados si quisieras)
   const r = await fetch(`${API}/pagos/resumen`, { headers: headers() });
   const s = await r.json();
   document.getElementById('resumen-pagos').innerHTML = `
-    <div>Pagados: ${s.pagados} (S/ ${s.total_pagado})</div>
-    <div>Pendientes: ${s.pendientes} (S/ ${s.total_pendiente})</div>
+    <div>Pagados Totales: ${s.pagados} (S/ ${s.total_pagado})</div>
+    <div>Pendientes Totales: ${s.pendientes} (S/ ${s.total_pendiente})</div>
   `;
 
+  // 4. Actualizar el gráfico solo si estamos en esa vista
   actualizarGrafico(s);
+}
+
+// Función para el gráfico (se mantiene igual)
+function actualizarGrafico(stats) {
+  const ctx = document.getElementById('miGrafico');
+  if (!ctx) return;
+
+  if (chartInstance) {
+    chartInstance.destroy();
+  }
+
+  chartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Total Pagado (S/)', 'Total Pendiente (S/)'],
+      datasets: [{
+        label: 'Balance de Caja',
+        data: [stats.total_pagado, stats.total_pendiente],
+        backgroundColor: ['#2ecc71', '#f39c12'],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: 'Ingresos vs Pendientes', font: { size: 16 } }
+      }
+    }
+  });
+}
+
+function mostrarGraficos() {
+  const contenedor = document.getElementById('contenedor-graficos');
+  contenedor.classList.toggle('oculto');
+  if (!contenedor.classList.contains('oculto')) {
+    cargarPagos(); 
+  }
 }
 
 // Función para el gráfico

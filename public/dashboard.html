@@ -38,13 +38,30 @@
         </select>
 
         <!-- NUEVO FILTRO DE TIEMPO -->
-        <select id="filtro_periodo" onchange="cargarPagos()" style="margin: 0;">
-          <option value="todos">Historial completo</option>
-          <option value="mes">Este Mes</option>
-          <option value="trimestre">Este Trimestre</option>
-          <option value="anio">Este Año</option>
+                <!-- NUEVOS FILTROS POR MES Y AÑO -->
+        <select id="filtro_mes" onchange="cargarPagos()" style="margin: 0;">
+          <option value="todos">Todos los meses</option>
+          <option value="0">Enero</option>
+          <option value="1">Febrero</option>
+          <option value="2">Marzo</option>
+          <option value="3">Abril</option>
+          <option value="4">Mayo</option>
+          <option value="5">Junio</option>
+          <option value="6">Julio</option>
+          <option value="7">Agosto</option>
+          <option value="8">Septiembre</option>
+          <option value="9">Octubre</option>
+          <option value="10">Noviembre</option>
+          <option value="11">Diciembre</option>
         </select>
 
+        <select id="filtro_anio" onchange="cargarPagos()" style="margin: 0;">
+          <option value="todos">Todos los años</option>
+          <option value="2024">2024</option>
+          <option value="2025">2025</option>
+          <option value="2026">2026</option>
+          <option value="2027">2027</option>
+        </select>
         <button onclick="descargarExcel()" style="background: #27ae60; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer;">
           📊 Excel
         </button>
