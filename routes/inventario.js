@@ -69,5 +69,18 @@ router.delete('/:id', permitirRoles('admin', 'entrenador'), async (req, res) => 
     res.status(500).json({ error: err.message });
   }
 });
+// Actualizar item
+router.put('/:id', permitirRoles('admin', 'entrenador'), async (req, res) => {
+  try {
+    const { item, categoria, cantidad, estado, vida_util_meses, proveedor, fecha_ingreso } = req.body;
+    await pool.query(
+      `UPDATE inventario SET item=?, categoria=?, cantidad=?, estado=?, vida_util_meses=?, proveedor=?, fecha_ingreso=? WHERE id=?`,
+      [item, categoria, cantidad, estado, vida_util_meses, proveedor, fecha_ingreso || null, req.params.id]
+    );
+    res.json({ mensaje: 'Item actualizado' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 module.exports = router;

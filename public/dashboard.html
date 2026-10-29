@@ -146,7 +146,10 @@
         <option value="dañado">Dañado</option>
       </select>
       <input id="inv_vida" type="number" placeholder="Vida útil (meses)">
-      <button onclick="crearItem()">Agregar</button>
+      
+      <!-- BOTONES DINÁMICOS PARA CREAR/EDITAR -->
+      <button id="btn-guardar-item" onclick="guardarItem()">Agregar</button>
+      <button id="btn-cancelar-item" class="oculto" onclick="cancelarEdicionItem()" style="background: #95a5a6; color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer;">Cancelar</button>
       
       <div id="lista-inventario"></div>
     </section>

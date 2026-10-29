@@ -1,6 +1,9 @@
 const API = '/api';
 const token = () => localStorage.getItem('token');
 
+// Variable global para saber si estamos editando un item del inventario
+let itemEditandoId = null; 
+
 // ---------- LOGIN ----------
 async function login() {
   const email = document.getElementById('email').value;
@@ -287,12 +290,12 @@ async function cargarInventario() {
       </div>
       <div style="display: flex; gap: 10px; align-items: center;">
         <span class="estado">${i.estado}</span>
+        <button onclick="editarItem(${i.id})" style="background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">✏️</button>
         <button onclick="eliminarItem(${i.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>
       </div>
     </div>
   `}).join('');
 }
-
 async function eliminarItem(id) {
   if (!confirm('¿Estás seguro de eliminar este item del inventario?')) return;
   
@@ -308,19 +311,74 @@ async function eliminarItem(id) {
   }
 }
 
-async function crearItem() {
-  await fetch(`${API}/inventario`, {
-    method: 'POST', headers: headers(),
-    body: JSON.stringify({
-      item: document.getElementById('inv_item').value,
-      categoria: document.getElementById('inv_cat').value,
-      cantidad: document.getElementById('inv_cant').value,
-      proveedor: document.getElementById('inv_proveedor').value,
-      fecha_ingreso: document.getElementById('inv_fecha_ingreso').value,
-      estado: document.getElementById('inv_estado').value,
-      vida_util_meses: document.getElementById('inv_vida').value
-    })
+// Función que maneja tanto el crear como el editar
+async function guardarItem() {
+  const datos = {
+    item: document.getElementById('inv_item').value,
+    categoria: document.getElementById('inv_cat').value,
+    cantidad: document.getElementById('inv_cant').value,
+    proveedor: document.getElementById('inv_proveedor').value,
+    fecha_ingreso: document.getElementById('inv_fecha_ingreso').value,
+    estado: document.getElementById('inv_estado').value,
+    vida_util_meses: document.getElementById('inv_vida').value
+  };
+
+  if (!datos.item || !datos.cantidad) {
+    alert('Por favor, llena al menos el Item y la Cantidad.');
+    return;
+  }
+
+  let url = `${API}/inventario`;
+  let method = 'POST';
+
+  if (itemEditandoId) {
+    url = `${API}/inventario/${itemEditandoId}`;
+    method = 'PUT';
+  }
+
+  const res = await fetch(url, {
+    method: method, headers: headers(),
+    body: JSON.stringify(datos)
   });
+
+  if (res.ok) {
+    cancelarEdicionItem(); 
+  } else {
+    alert('Error al guardar. Verifica la consola.');
+  }
+}
+
+async function editarItem(id) {
+  const res = await fetch(`${API}/inventario`, { headers: headers() });
+  const data = await res.json();
+  const i = data.find(item => item.id === id);
+
+  if (!i) return;
+
+  document.getElementById('inv_item').value = i.item;
+  document.getElementById('inv_cat').value = i.categoria;
+  document.getElementById('inv_cant').value = i.cantidad;
+  document.getElementById('inv_proveedor').value = i.proveedor || '';
+  document.getElementById('inv_fecha_ingreso').value = i.fecha_ingreso ? i.fecha_ingreso.split('T')[0] : '';
+  document.getElementById('inv_estado').value = i.estado;
+  document.getElementById('inv_vida').value = i.vida_util_meses;
+
+  itemEditandoId = id;
+  const btnGuardar = document.getElementById('btn-guardar-item');
+  btnGuardar.textContent = 'Actualizar';
+  btnGuardar.style.background = '#f39c12'; 
+  btnGuardar.style.color = 'white';
+  btnGuardar.style.border = 'none';
+  btnGuardar.style.padding = '8px';
+  btnGuardar.style.borderRadius = '6px';
+
+  document.getElementById('btn-cancelar-item').classList.remove('oculto');
+  
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function cancelarEdicionItem() {
+  itemEditandoId = null;
   
   document.getElementById('inv_item').value = '';
   document.getElementById('inv_cat').value = '';
@@ -329,17 +387,25 @@ async function crearItem() {
   document.getElementById('inv_fecha_ingreso').value = '';
   document.getElementById('inv_vida').value = '';
   
+  const btnGuardar = document.getElementById('btn-guardar-item');
+  btnGuardar.textContent = 'Agregar';
+  btnGuardar.style.background = '';
+  btnGuardar.style.color = '';
+  btnGuardar.style.border = '';
+  btnGuardar.style.padding = '';
+  btnGuardar.style.borderRadius = '';
+
+  document.getElementById('btn-cancelar-item').classList.add('oculto');
+  
   cargarInventario();
 }
 
-// ---------- CLASES ----------
 // ---------- CLASES ----------
 async function cargarClases() {
   const res = await fetch(`${API}/clases`, { headers: headers() });
   const data = await res.json();
   
   document.getElementById('lista-clases').innerHTML = data.map(c => {
-    // Recortamos los segundos para que se vea más limpio (HH:MM)
     const inicioLimpio = c.hora_inicio ? c.hora_inicio.slice(0, 5) : '';
     const finLimpio = c.hora_fin ? c.hora_fin.slice(0, 5) : '';
 
@@ -355,23 +421,19 @@ async function cargarClases() {
   }).join('');
 }
 
-// Función para eliminar
 async function eliminarClase(id) {
   if (!confirm('¿Estás seguro de eliminar esta clase?')) return;
   const res = await fetch(`${API}/clases/${id}`, { method: 'DELETE', headers: headers() });
   if (res.ok) cargarClases();
 }
 
-// Función para editar
 async function editarClase(id) {
-  // Buscamos los datos de la clase actual
   const res = await fetch(`${API}/clases`, { headers: headers() });
   const data = await res.json();
   const c = data.find(clase => clase.id === id);
 
   if (!c) return;
 
-  // Pedimos los nuevos datos con ventanas prompt
   const nombre = prompt('Nombre de la clase:', c.nombre);
   const categoria = prompt('Categoría:', c.categoria);
   const dia = prompt('Día:', c.dia_semana);
@@ -379,10 +441,8 @@ async function editarClase(id) {
   const fin = prompt('Hora Fin (HH:MM):', c.hora_fin ? c.hora_fin.slice(0, 5) : '');
   const cancha = prompt('Cancha:', c.cancha);
 
-  // Si el usuario cancela, no hacemos nada
   if (nombre === null || categoria === null) return;
 
-  // Enviamos los cambios al servidor
   const updateRes = await fetch(`${API}/clases/${id}`, {
     method: 'PUT',
     headers: headers(),
