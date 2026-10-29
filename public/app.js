@@ -82,7 +82,7 @@ function headers() {
 }
 
 // ---------- PAGOS ----------
-let chartInstance = null; // Variable global para el gráfico
+let chartInstance = null;
 
 async function cargarPagos() {
   const res = await fetch(`${API}/pagos`, { headers: headers() });
@@ -90,7 +90,6 @@ async function cargarPagos() {
   
   const textoBusqueda = document.getElementById('buscar_pago').value.toLowerCase();
   const filtroEstado = document.getElementById('filtro_estado').value;
-  
   const filtroMes = document.getElementById('filtro_mes').value;
   const filtroAnio = document.getElementById('filtro_anio').value;
 
@@ -101,12 +100,8 @@ async function cargarPagos() {
     let coincideTiempo = true;
     if (p.fecha_inicio) {
       const fechaP = new Date(p.fecha_inicio);
-      if (filtroMes !== 'todos' && fechaP.getMonth() !== parseInt(filtroMes)) {
-        coincideTiempo = false;
-      }
-      if (filtroAnio !== 'todos' && fechaP.getFullYear() !== parseInt(filtroAnio)) {
-        coincideTiempo = false;
-      }
+      if (filtroMes !== 'todos' && fechaP.getMonth() !== parseInt(filtroMes)) coincideTiempo = false;
+      if (filtroAnio !== 'todos' && fechaP.getFullYear() !== parseInt(filtroAnio)) coincideTiempo = false;
     } else if (filtroMes !== 'todos' || filtroAnio !== 'todos') {
       coincideTiempo = false; 
     }
@@ -280,7 +275,6 @@ async function cargarInventario() {
   });
 
   document.getElementById('lista-inventario').innerHTML = filtrados.map(i => {
-    // CORRECCIÓN: Formatear la fecha para que no salga con la hora
     const fIngreso = i.fecha_ingreso ? i.fecha_ingreso.split('T')[0] : 'N/A';
 
     return `
@@ -482,7 +476,7 @@ async function cargarSelectJugadores() {
   }
 }
 
-// ---------- FILTROS PARA REPORTES ----------
+// ---------- FILTROS PARA REPORTES (PAGOS) ----------
 async function obtenerDatosFiltrados() {
   const res = await fetch(`${API}/pagos`, { headers: headers() });
   const data = await res.json();
@@ -634,13 +628,36 @@ async function descargarPDF() {
   ventana.document.close();
 }
 
-// ---------- REPORTE EXCEL (INVENTARIO) ----------
-async function descargarExcelInventario() {
+// ---------- FILTROS PARA REPORTES (INVENTARIO) ----------
+async function obtenerInventarioFiltrado() {
   const res = await fetch(`${API}/inventario`, { headers: headers() });
   const data = await res.json();
+  
+  const buscar = document.getElementById('buscar_inv').value.toLowerCase();
+  const cat = document.getElementById('filtro_cat').value;
+  const mesFiltro = document.getElementById('filtro_mes_inv').value;
+
+  return data.filter(i => {
+    const coincideTexto = i.item.toLowerCase().includes(buscar);
+    const coincideCat = cat === 'todos' || i.categoria === cat;
+    
+    let coincideMes = true;
+    if (mesFiltro && i.fecha_ingreso) {
+      coincideMes = i.fecha_ingreso.startsWith(mesFiltro);
+    } else if (mesFiltro && !i.fecha_ingreso) {
+      coincideMes = false;
+    }
+
+    return coincideTexto && coincideCat && coincideMes;
+  });
+}
+
+// ---------- REPORTE EXCEL (INVENTARIO) ----------
+async function descargarExcelInventario() {
+  const data = await obtenerInventarioFiltrado();
 
   if (data.length === 0) {
-    alert('No hay items para exportar');
+    alert('No hay items para exportar con los filtros actuales.');
     return;
   }
 
@@ -663,11 +680,10 @@ async function descargarExcelInventario() {
 
 // ---------- REPORTE PDF (INVENTARIO) ----------
 async function descargarPDFInventario() {
-  const res = await fetch(`${API}/inventario`, { headers: headers() });
-  const data = await res.json();
+  const data = await obtenerInventarioFiltrado();
 
   if (data.length === 0) {
-    alert('No hay items para exportar');
+    alert('No hay items para exportar con los filtros actuales.');
     return;
   }
 
@@ -708,7 +724,6 @@ async function descargarPDFInventario() {
 
   data.forEach(i => {
     const fIngreso = i.fecha_ingreso ? i.fecha_ingreso.split('T')[0] : 'N/A';
-    
     html += `
       <tr>
         <td>${i.id}</td>
