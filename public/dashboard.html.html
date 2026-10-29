@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard - Club Vóley</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header>
+    <h1>🏐 Panel de Control</h1>
+    <div>
+      <span id="user-info"></span>
+      <button onclick="logout()">Salir</button>
+    </div>
+  </header>
+
+  <nav>
+    <button onclick="mostrar('pagos')">💰 Ingresos</button>
+    <button onclick="mostrar('inventario')">📦 Inventario</button>
+    <button onclick="mostrar('clases')">📅 Clases</button>
+    <button onclick="mostrar('usuarios')">👥 Usuarios</button>
+  </nav>
+
+  <main>
+    <section id="pagos" class="seccion">
+      <h2>💰 Control de Ingresos</h2>
+      <div id="resumen-pagos" class="stats"></div>
+      <h3>Registrar pago</h3>
+      <input id="pago_jugador" type="number" placeholder="ID Jugador">
+      <input id="pago_concepto" placeholder="Concepto (mensualidad)">
+      <input id="pago_monto" type="number" placeholder="Monto S/">
+      <input id="pago_venc" type="date">
+      <button onclick="crearPago()">Registrar</button>
+      <div id="lista-pagos"></div>
+    </section>
+
+    <section id="inventario" class="seccion oculto">
+      <h2>📦 Inventario</h2>
+      <input id="inv_item" placeholder="Item (balón)">
+      <input id="inv_cat" placeholder="Categoría">
+      <input id="inv_cant" type="number" placeholder="Cantidad">
+      <select id="inv_estado">
+        <option value="nuevo">Nuevo</option>
+        <option value="uso">En uso</option>
+        <option value="dañado">Dañado</option>
+      </select>
+      <input id="inv_vida" type="number" placeholder="Vida útil (meses)">
+      <button onclick="crearItem()">Agregar</button>
+      <div id="lista-inventario"></div>
+    </section>
+
+    <section id="clases" class="seccion oculto">
+      <h2>📅 Clases</h2>
+      <input id="cl_nombre" placeholder="Nombre clase">
+      <input id="cl_cat" placeholder="Categoría (Sub-15)">
+      <input id="cl_dia" placeholder="Día (Lunes)">
+      <input id="cl_ini" type="time">
+      <input id="cl_fin" type="time">
+      <input id="cl_cancha" placeholder="Cancha">
+      <button onclick="crearClase()">Crear</button>
+      <div id="lista-clases"></div>
+    </section>
+
+    <section id="usuarios" class="seccion oculto">
+      <h2>👥 Usuarios</h2>
+      <div id="lista-usuarios"></div>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

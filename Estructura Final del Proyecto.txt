@@ -1,0 +1,20 @@
+voley-system/
+├── package.json
+├── .env
+├── server.js
+├── config/
+│   └── db.js
+├── middleware/
+│   └── auth.js
+├── routes/
+│   ├── auth.js
+│   ├── usuarios.js
+│   ├── pagos.js
+│   ├── inventario.js
+│   ├── clases.js
+│   └── evaluaciones.js
+└── public/
+    ├── index.html
+    ├── dashboard.html
+    ├── app.js
+    └── styles.css
