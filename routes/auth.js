@@ -38,11 +38,24 @@ router.post('/registro', async (req, res) => {
     }
 
     const hash = await bcrypt.hash(password, 10);
+    const rolFinal = rol || 'jugador';
+
+    // 1. Insertamos el usuario en la tabla usuarios
     const [result] = await pool.query(
       `INSERT INTO usuarios (nombre, email, password_hash, rol) VALUES (?, ?, ?, ?)`,
-      [nombre, email, hash, rol || 'jugador']
+      [nombre, email, hash, rolFinal]
     );
 
+    // 2. Si el rol es jugador, creamos su perfil automáticamente en la tabla jugadores
+    if (rolFinal === 'jugador') {
+      await pool.query(
+        `INSERT INTO jugadores (usuario_id, categoria, posicion, dorsal) 
+         VALUES (?, 'Sin categoría', 'Por definir', 0)`,
+        [result.insertId]
+      );
+    }
+
+    // 3. Devolvemos los datos del usuario creado
     const [rows] = await pool.query('SELECT id, nombre, email, rol FROM usuarios WHERE id = ?', [result.insertId]);
     res.json(rows[0]);
   } catch (err) {

@@ -127,14 +127,3 @@ CREATE TABLE evaluaciones (
     FOREIGN KEY (entrenador_id) REFERENCES usuarios(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-DELIMITER $$
-CREATE TRIGGER crear_perfil_jugador
-AFTER INSERT ON usuarios
-FOR EACH ROW
-BEGIN
-    IF NEW.rol = 'jugador' THEN
-        INSERT INTO jugadores (usuario_id, categoria, posicion, dorsal) 
-        VALUES (NEW.id, 'Sin categoría', 'Por definir', 0);
-    END IF;
-END$$
-DELIMITER ;
