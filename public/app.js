@@ -974,30 +974,53 @@ async function cargarSelectJugadoresAsistencia() {
 async function cargarAsistencias() {
   const claseId = document.getElementById('asis_clase').value;
   const mes = document.getElementById('asis_mes').value;
+  const estadoFiltro = document.getElementById('asis_filtro_estado').value;
 
-  // Si no se selecciona clase, vaciamos la lista
   if (!claseId) {
     document.getElementById('lista-asistencias').innerHTML = '<p style="text-align:center; color:#777;">Selecciona una clase para ver la asistencia.</p>';
+    document.getElementById('resumen-asistencias').innerHTML = '';
     return;
   }
 
   const res = await fetch(`${API}/clases/${claseId}/asistencia`, { headers: headers() });
   const data = await res.json();
 
-  // Filtrar por mes (si no es "todos")
+  // 1. Filtrar por mes y estado
   const filtrados = data.filter(a => {
-    if (mes === 'todos') return true;
-    const fechaA = new Date(a.fecha);
-    return fechaA.getMonth() === parseInt(mes);
+    let coincideMes = true;
+    if (mes !== 'todos') {
+      const fechaA = new Date(a.fecha);
+      coincideMes = fechaA.getMonth() === parseInt(mes);
+    }
+
+    let coincideEstado = true;
+    if (estadoFiltro !== 'todos') {
+      coincideEstado = (a.presente === parseInt(estadoFiltro));
+    }
+
+    return coincideMes && coincideEstado;
   });
 
+  // 2. Calcular Resumen
+  let presentes = 0;
+  let faltas = 0;
+  filtrados.forEach(a => a.presente ? presentes++ : faltas++);
+  
+  document.getElementById('resumen-asistencias').innerHTML = `
+    Mostrando: <span style="color: #2ecc71;">${presentes} Presentes</span> | 
+    <span style="color: #e74c3c;">${faltas} Faltas</span> (Total: ${filtrados.length} registros)
+  `;
+
+  // 3. Dibujar lista
   if (filtrados.length === 0) {
-    document.getElementById('lista-asistencias').innerHTML = '<p style="text-align:center; color:#777;">No hay asistencias registradas en este mes.</p>';
+    document.getElementById('lista-asistencias').innerHTML = '<p style="text-align:center; color:#777;">No hay registros con estos filtros.</p>';
     return;
   }
 
   document.getElementById('lista-asistencias').innerHTML = filtrados.map(a => {
-    const estadoHtml = a.presente ? '<span style="color: #2ecc71; font-weight:bold;">Presente</span>' : '<span style="color: #e74c3c; font-weight:bold;">Falta</span>';
+    const estadoHtml = a.presente 
+      ? '<span style="color: #2ecc71; font-weight:bold;">✅ Presente</span>' 
+      : '<span style="color: #e74c3c; font-weight:bold;">❌ Falta</span>';
     return `
     <div class="row">
       <span><strong>${a.fecha.split('T')[0]}</strong> - ${a.jugador}</span>
@@ -1034,4 +1057,102 @@ async function marcarAsistencia() {
   } else {
     alert('Error al guardar la asistencia');
   }
+}
+
+async function descargarPDFAsistencias() {
+  const claseId = document.getElementById('asis_clase').value;
+  const mes = document.getElementById('asis_mes').value;
+  const estadoFiltro = document.getElementById('asis_filtro_estado').value;
+
+  if (!claseId) {
+    alert('Por favor, selecciona una clase primero.');
+    return;
+  }
+
+  const res = await fetch(`${API}/clases/${claseId}/asistencia`, { headers: headers() });
+  const data = await res.json();
+
+  // Filtramos los datos igual que en la pantalla
+  const filtrados = data.filter(a => {
+    let coincideMes = true;
+    if (mes !== 'todos') {
+      const fechaA = new Date(a.fecha);
+      coincideMes = fechaA.getMonth() === parseInt(mes);
+    }
+    let coincideEstado = true;
+    if (estadoFiltro !== 'todos') {
+      coincideEstado = (a.presente === parseInt(estadoFiltro));
+    }
+    return coincideMes && coincideEstado;
+  });
+
+  if (filtrados.length === 0) {
+    alert('No hay registros para exportar con estos filtros.');
+    return;
+  }
+
+  // Nombre de la clase para el título
+  const selectClase = document.getElementById('asis_clase');
+  const nombreClase = selectClase.options[selectClase.selectedIndex].text;
+
+  const ventana = window.open('', '_blank');
+  
+  let html = `
+    <html>
+    <head>
+      <title>Reporte de Asistencias - Club Vóley</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h1 { color: #1f4e79; text-align: center; }
+        .info { text-align: center; margin-bottom: 20px; color: #555; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+        th { background-color: #1f4e79; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .presente { color: #27ae60; font-weight: bold; }
+        .falta { color: #e74c3c; font-weight: bold; }
+      </style>
+    </head>
+    <body>
+      <h1>✅ Reporte de Asistencias</h1>
+      <div class="info">
+        <strong>Clase:</strong> ${nombreClase} <br>
+        <strong>Generado el:</strong> ${new Date().toLocaleDateString('es-PE')}
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Jugador</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  filtrados.forEach(a => {
+    html += `
+      <tr>
+        <td>${a.fecha.split('T')[0]}</td>
+        <td>${a.jugador}</td>
+        <td class="${a.presente ? 'presente' : 'falta'}">
+          ${a.presente ? 'PRESENTE' : 'FALTA'}
+        </td>
+      </tr>
+    `;
+  });
+
+  html += `
+        </tbody>
+      </table>
+      <script>
+        window.onload = function() { window.print(); }
+      </script>
+    </body>
+    </html>
+  `;
+
+  ventana.document.write(html);
+  ventana.document.close();
 }

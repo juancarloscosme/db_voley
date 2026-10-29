@@ -199,6 +199,7 @@
       <h2>✅ Control de Asistencias</h2>
       
       <!-- FILTROS -->
+      <!-- FILTROS -->
       <div style="display: flex; gap: 10px; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #ddd; flex-wrap: wrap;">
         <select id="asis_clase" onchange="cargarAsistencias()" style="margin: 0;">
           <option value="">Seleccione una clase</option>
@@ -219,7 +220,22 @@
           <option value="10">Noviembre</option>
           <option value="11">Diciembre</option>
         </select>
+
+        <!-- NUEVO FILTRO DE ESTADO -->
+        <select id="asis_filtro_estado" onchange="cargarAsistencias()" style="margin: 0;">
+          <option value="todos">Todos (Presentes y Faltas)</option>
+          <option value="1">Solo Presentes</option>
+          <option value="0">Solo Faltas</option>
+        </select>
+
+        <!-- NUEVO BOTÓN DE PDF -->
+        <button onclick="descargarPDFAsistencias()" style="background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer;">
+          📄 Reporte PDF
+        </button>
       </div>
+
+      <!-- NUEVO RESUMEN (Se llenará con JS) -->
+      <div id="resumen-asistencias" style="margin-bottom: 20px; font-weight: bold; color: #1f4e79;"></div>
 
       <!-- FORMULARIO PARA MARCAR ASISTENCIA -->
       <h3>Registrar Asistencia</h3>
