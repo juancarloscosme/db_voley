@@ -129,10 +129,30 @@ async function cargarInventario() {
   document.getElementById('lista-inventario').innerHTML = data.map(i => `
     <div class="row">
       <span>${i.item} (${i.categoria}) x${i.cantidad}</span>
-      <span class="estado">${i.estado}</span>
-      ${i.prestado_a ? `<span>Prestado a user ${i.prestado_a}</span>` : ''}
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <span class="estado">${i.estado}</span>
+        ${i.prestado_a ? `<span>Prestado a user ${i.prestado_a}</span>` : ''}
+        <!-- NUEVO BOTÓN ELIMINAR -->
+        <button onclick="eliminarItem(${i.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>
+      </div>
     </div>
   `).join('');
+}
+
+// NUEVA FUNCIÓN PARA ELIMINAR
+async function eliminarItem(id) {
+  if (!confirm('¿Estás seguro de eliminar este item del inventario?')) return;
+  
+  const res = await fetch(`${API}/inventario/${id}`, {
+    method: 'DELETE',
+    headers: headers()
+  });
+  
+  if (res.ok) {
+    cargarInventario(); // Recargar la lista
+  } else {
+    alert('Error al eliminar el item');
+  }
 }
 
 async function crearItem() {
@@ -146,19 +166,32 @@ async function crearItem() {
       vida_util_meses: document.getElementById('inv_vida').value
     })
   });
+  
+  // Limpiar cajas de texto
+  document.getElementById('inv_item').value = '';
+  document.getElementById('inv_cat').value = '';
+  document.getElementById('inv_cant').value = '';
+  document.getElementById('inv_vida').value = '';
+  
+  // Recargar la lista
   cargarInventario();
 }
 
 // ---------- CLASES ----------
-async function cargarClases() {
-  const res = await fetch(`${API}/clases`, { headers: headers() });
-  const data = await res.json();
-  document.getElementById('lista-clases').innerHTML = data.map(c => `
-    <div class="row">
-      <span>${c.nombre} - ${c.categoria} - ${c.dia_semana} ${c.hora_inicio}-${c.hora_fin}</span>
-      <span>${c.cancha || ''}</span>
-    </div>
-  `).join('');
+async function crearClase() {
+  await fetch(`${API}/clases`, {
+    // ... fetch ...
+  });
+  
+  // Limpiar
+  document.getElementById('cl_nombre').value = '';
+  document.getElementById('cl_cat').value = '';
+  document.getElementById('cl_dia').value = '';
+  document.getElementById('cl_ini').value = '';
+  document.getElementById('cl_fin').value = '';
+  document.getElementById('cl_cancha').value = '';
+
+  cargarClases();
 }
 
 async function crearClase() {

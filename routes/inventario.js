@@ -59,4 +59,14 @@ router.put('/:id/devolver', permitirRoles('admin', 'entrenador'), async (req, re
   }
 });
 
+// Eliminar item del inventario
+router.delete('/:id', permitirRoles('admin', 'entrenador'), async (req, res) => {
+  try {
+    await pool.query('DELETE FROM inventario WHERE id = ?', [req.params.id]);
+    res.json({ mensaje: 'Item eliminado' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
