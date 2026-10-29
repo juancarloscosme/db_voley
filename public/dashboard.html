@@ -37,8 +37,6 @@
           <option value="pagado">Solo Pagados</option>
         </select>
 
-        <!-- NUEVO FILTRO DE TIEMPO -->
-                <!-- NUEVOS FILTROS POR MES Y AÑO -->
         <select id="filtro_mes" onchange="cargarPagos()" style="margin: 0;">
           <option value="todos">Todos los meses</option>
           <option value="0">Enero</option>
@@ -107,11 +105,38 @@
       <div id="lista-pagos"></div>
     </section>
     
+    <!-- SECCIÓN DE INVENTARIO ACTUALIZADA -->
     <section id="inventario" class="seccion oculto">
       <h2>📦 Inventario</h2>
+      
+      <!-- BARRA DE FILTROS Y REPORTES -->
+      <div style="display: flex; gap: 10px; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #ddd; flex-wrap: wrap;">
+        <input type="text" id="buscar_inv" placeholder="🔍 Buscar item..." oninput="cargarInventario()" style="flex: 1; margin: 0;">
+        
+        <select id="filtro_cat" onchange="cargarInventario()" style="margin: 0;">
+          <option value="todos">Todas las categorías</option>
+          <option value="Balón">Balones</option>
+          <option value="Red">Redes</option>
+          <option value="Uniforme">Uniformes</option>
+          <option value="Conos">Conos</option>
+        </select>
+
+        <input type="month" id="filtro_mes_inv" onchange="cargarInventario()" style="margin: 0;">
+
+        <button onclick="descargarExcelInventario()" style="background: #27ae60; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer;">
+          📊 Reporte
+        </button>
+      </div>
+
+      <h3>Registrar nuevo item</h3>
       <input id="inv_item" placeholder="Item (balón)">
       <input id="inv_cat" placeholder="Categoría">
       <input id="inv_cant" type="number" placeholder="Cantidad">
+      
+      <!-- NUEVOS CAMPOS -->
+      <input id="inv_proveedor" placeholder="Proveedor / Donante">
+      <input id="inv_fecha_ingreso" type="date" title="Fecha de ingreso">
+      
       <select id="inv_estado">
         <option value="nuevo">Nuevo</option>
         <option value="uso">En uso</option>
@@ -119,6 +144,7 @@
       </select>
       <input id="inv_vida" type="number" placeholder="Vida útil (meses)">
       <button onclick="crearItem()">Agregar</button>
+      
       <div id="lista-inventario"></div>
     </section>
 

@@ -314,18 +314,40 @@ async function anularPago(id) {
 async function cargarInventario() {
   const res = await fetch(`${API}/inventario`, { headers: headers() });
   const data = await res.json();
-  document.getElementById('lista-inventario').innerHTML = data.map(i => `
+  
+  const buscar = document.getElementById('buscar_inv').value.toLowerCase();
+  const cat = document.getElementById('filtro_cat').value;
+  const mesFiltro = document.getElementById('filtro_mes_inv').value; // Formato "YYYY-MM"
+
+  const filtrados = data.filter(i => {
+    const coincideTexto = i.item.toLowerCase().includes(buscar);
+    const coincideCat = cat === 'todos' || i.categoria === cat;
+    
+    let coincideMes = true;
+    if (mesFiltro && i.fecha_ingreso) {
+      coincideMes = i.fecha_ingreso.startsWith(mesFiltro);
+    } else if (mesFiltro && !i.fecha_ingreso) {
+      coincideMes = false;
+    }
+
+    return coincideTexto && coincideCat && coincideMes;
+  });
+
+  document.getElementById('lista-inventario').innerHTML = filtrados.map(i => `
     <div class="row">
-      <span>${i.item} (${i.categoria}) x${i.cantidad} - Vida útil: ${i.vida_util_meses} meses</span>
+      <div>
+        <strong>${i.item} (${i.categoria}) x${i.cantidad}</strong> <br>
+        <span style="font-size: 0.9em; color: #555;">
+          Vida útil: ${i.vida_util_meses} meses | Prov: ${i.proveedor || 'N/A'} | Ingreso: ${i.fecha_ingreso || 'N/A'}
+        </span>
+      </div>
       <div style="display: flex; gap: 10px; align-items: center;">
         <span class="estado">${i.estado}</span>
-        ${i.prestado_a ? `<span>Prestado a user ${i.prestado_a}</span>` : ''}
         <button onclick="eliminarItem(${i.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>
       </div>
     </div>
   `).join('');
 }
-
 async function eliminarItem(id) {
   if (!confirm('¿Estás seguro de eliminar este item del inventario?')) return;
   
@@ -348,14 +370,19 @@ async function crearItem() {
       item: document.getElementById('inv_item').value,
       categoria: document.getElementById('inv_cat').value,
       cantidad: document.getElementById('inv_cant').value,
+      proveedor: document.getElementById('inv_proveedor').value,
+      fecha_ingreso: document.getElementById('inv_fecha_ingreso').value,
       estado: document.getElementById('inv_estado').value,
       vida_util_meses: document.getElementById('inv_vida').value
     })
   });
   
+  // Limpiar cajas
   document.getElementById('inv_item').value = '';
   document.getElementById('inv_cat').value = '';
   document.getElementById('inv_cant').value = '';
+  document.getElementById('inv_proveedor').value = '';
+  document.getElementById('inv_fecha_ingreso').value = '';
   document.getElementById('inv_vida').value = '';
   
   cargarInventario();
@@ -660,4 +687,29 @@ async function descargarPDF() {
 
   ventana.document.write(html);
   ventana.document.close();
+}
+
+async function descargarExcelInventario() {
+  const res = await fetch(`${API}/inventario`, { headers: headers() });
+  const data = await res.json();
+
+  if (data.length === 0) {
+    alert('No hay items para exportar');
+    return;
+  }
+
+  let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
+  csvContent += "ID,Item,Categoria,Cantidad,Proveedor,Fecha Ingreso,Estado,Vida Util\n";
+
+  data.forEach(i => {
+    csvContent += `${i.id},${i.item},${i.categoria},${i.cantidad},${i.proveedor || ''},${i.fecha_ingreso || ''},${i.estado},${i.vida_util_meses}\n`;
+  });
+
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", "Reporte_Inventario.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }

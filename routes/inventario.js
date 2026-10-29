@@ -15,13 +15,14 @@ router.get('/', async (req, res) => {
 });
 
 // Crear item
+// Crear item
 router.post('/', permitirRoles('admin', 'entrenador'), async (req, res) => {
   try {
-    const { item, categoria, cantidad, estado, vida_util_meses } = req.body;
+    const { item, categoria, cantidad, estado, vida_util_meses, proveedor, fecha_ingreso } = req.body;
     const [result] = await pool.query(
-      `INSERT INTO inventario (item, categoria, cantidad, estado, vida_util_meses, fecha_adquisicion)
-       VALUES (?, ?, ?, ?, ?, CURRENT_DATE)`,
-      [item, categoria, cantidad, estado, vida_util_meses]
+      `INSERT INTO inventario (item, categoria, cantidad, estado, vida_util_meses, proveedor, fecha_ingreso)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [item, categoria, cantidad, estado, vida_util_meses, proveedor, fecha_ingreso || null]
     );
     const [rows] = await pool.query('SELECT * FROM inventario WHERE id = ?', [result.insertId]);
     res.json(rows[0]);
