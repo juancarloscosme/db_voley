@@ -196,7 +196,6 @@ async function crearClase() {
     })
   });
 
-  // Limpiar campos
   document.getElementById('cl_nombre').value = '';
   document.getElementById('cl_cat').value = '';
   document.getElementById('cl_dia').value = '';
@@ -212,10 +211,25 @@ async function cargarUsuarios() {
   const res = await fetch(`${API}/usuarios`, { headers: headers() });
   if (!res.ok) return;
   const data = await res.json();
+  
   document.getElementById('lista-usuarios').innerHTML = data.map(u => `
     <div class="row">
-      <span>${u.nombre} - ${u.email}</span>
-      <span class="estado">${u.rol}</span>
+      <span>${u.nombre} - ${u.email} ${u.activo === 0 ? '<strong style="color:red">(Dado de baja)</strong>' : ''}</span>
+      <div style="display:flex; gap: 8px; align-items:center;">
+        <span class="estado">${u.rol}</span>
+        
+        ${u.rol !== 'admin' ? `
+          <button onclick="cambiarEstadoUsuario(${u.id}, ${u.activo})" 
+            style="background: ${u.activo === 1 ? '#f39c12' : '#2ecc71'}; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">
+            ${u.activo === 1 ? 'Dar de baja' : 'Reactivar'}
+          </button>
+
+          <button onclick="eliminarUsuario(${u.id})" 
+            style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">
+            ❌
+          </button>
+        ` : ''}
+      </div>
     </div>
   `).join('');
 }
@@ -247,6 +261,37 @@ async function crearUsuario() {
     document.getElementById('usr_email').value = '';
     document.getElementById('usr_pass').value = '';
     cargarUsuarios();
+  }
+}
+
+async function cambiarEstadoUsuario(id, activoActual) {
+  const nuevoEstado = activoActual === 1 ? 0 : 1; 
+  const accion = activoActual === 1 ? 'dar de baja' : 'reactivar';
+  
+  if (!confirm(`¿Estás seguro de ${accion} a este usuario?`)) return;
+
+  const res = await fetch(`${API}/usuarios/${id}/estado`, {
+    method: 'PUT',
+    headers: headers(),
+    body: JSON.stringify({ activo: nuevoEstado })
+  });
+  
+  if (res.ok) cargarUsuarios();
+}
+
+async function eliminarUsuario(id) {
+  if (!confirm('⚠️ ¿Estás SEGURO de eliminar a este usuario para siempre? Se borrarán sus pagos y datos.')) return;
+
+  const res = await fetch(`${API}/usuarios/${id}`, {
+    method: 'DELETE',
+    headers: headers()
+  });
+  
+  if (res.ok) {
+    alert('Usuario eliminado');
+    cargarUsuarios();
+  } else {
+    alert('No se puede eliminar');
   }
 }
 
