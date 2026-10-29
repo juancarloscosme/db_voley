@@ -92,4 +92,14 @@ router.put('/:id/anular', permitirRoles('admin', 'cajero'), async (req, res) => 
   }
 });
 
+// Eliminar un pago definitivamente
+router.delete('/:id', permitirRoles('admin', 'cajero'), async (req, res) => {
+  try {
+    await pool.query('DELETE FROM pagos WHERE id = ?', [req.params.id]);
+    res.json({ mensaje: 'Pago eliminado correctamente' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
