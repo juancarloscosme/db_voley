@@ -103,4 +103,23 @@ router.delete('/:id', permitirRoles('admin', 'cajero'), async (req, res) => {
   }
 });
 
+// Editar/Actualizar un pago
+router.put('/:id', permitirRoles('admin', 'cajero'), async (req, res) => {
+  try {
+    const { concepto, monto, fecha_inicio, fecha_vencimiento } = req.body;
+    
+    await pool.query(
+      `UPDATE pagos 
+       SET concepto = ?, monto = ?, fecha_inicio = ?, fecha_vencimiento = ? 
+       WHERE id = ?`,
+      [concepto, monto, fecha_inicio, fecha_vencimiento, req.params.id]
+    );
+    
+    const [rows] = await pool.query('SELECT * FROM pagos WHERE id = ?', [req.params.id]);
+    res.json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

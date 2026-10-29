@@ -71,7 +71,7 @@ function mostrar(id) {
   if (id === 'pagos') {
     cargarPagos();
     cargarSelectJugadores();
-    cargarSelectConceptos(); // <--- AGREGAR ESTA LÍNEA
+    cargarSelectConceptos();
   }
   if (id === 'inventario') cargarInventario();
   if (id === 'clases') cargarClases();
@@ -127,6 +127,10 @@ async function cargarPagos() {
       </div>
       <div style="display:flex; gap: 8px; align-items:center;">
         <span class="estado ${p.estado}">${p.estado}</span>
+        
+        <!-- BOTÓN EDITAR -->
+        <button onclick="editarPago(${p.id})" style="background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">✏️</button>
+
         ${p.estado === 'pendiente' ? `<button onclick="pagar(${p.id})" style="background: #2ecc71; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Pagar</button><button onclick="eliminarPago(${p.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>` : ''}
         ${p.estado === 'pagado' ? `<button onclick="anularPago(${p.id})" style="background: #f39c12; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Anular</button>` : ''}
       </div>
@@ -196,6 +200,38 @@ async function eliminarPago(id) {
     cargarPagos();
   } else {
     alert('Error al eliminar el pago');
+  }
+}
+
+async function editarPago(id) {
+  const res = await fetch(`${API}/pagos`, { headers: headers() });
+  const data = await res.json();
+  const p = data.find(pago => pago.id === id);
+
+  if (!p) return;
+
+  const concepto = prompt('Nuevo concepto:', p.concepto);
+  const monto = prompt('Nuevo monto:', p.monto);
+  const fechaInicio = prompt('Nueva Fecha de Inicio (YYYY-MM-DD):', p.fecha_inicio ? p.fecha_inicio.split('T')[0] : '');
+  const fechaFin = prompt('Nueva Fecha de Fin (YYYY-MM-DD):', p.fecha_vencimiento ? p.fecha_vencimiento.split('T')[0] : '');
+
+  if (concepto === null || monto === null) return;
+
+  const updateRes = await fetch(`${API}/pagos/${id}`, {
+    method: 'PUT',
+    headers: headers(),
+    body: JSON.stringify({
+      concepto: concepto,
+      monto: monto,
+      fecha_inicio: fechaInicio,
+      fecha_vencimiento: fechaFin
+    })
+  });
+
+  if (updateRes.ok) {
+    cargarPagos();
+  } else {
+    alert('Error al editar el pago');
   }
 }
 
@@ -297,6 +333,7 @@ async function cargarInventario() {
     </div>
   `}).join('');
 }
+
 async function eliminarItem(id) {
   if (!confirm('¿Estás seguro de eliminar este item del inventario?')) return;
   
@@ -312,7 +349,6 @@ async function eliminarItem(id) {
   }
 }
 
-// Función que maneja tanto el crear como el editar
 async function guardarItem() {
   const datos = {
     item: document.getElementById('inv_item').value,
@@ -494,7 +530,7 @@ async function cargarUsuarios() {
       <div style="display:flex; gap: 8px; align-items:center;">
         <span class="estado">${u.rol}</span>
         
-        <!-- NUEVO BOTÓN DE CONTRASEÑA -->
+        <!-- BOTÓN DE CONTRASEÑA -->
         <button onclick="cambiarPassword(${u.id})" style="background: #9b59b6; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Cambiar contraseña">🔑</button>
 
         ${u.rol !== 'admin' ? `
@@ -594,15 +630,12 @@ async function cargarSelectJugadores() {
   }
 }
 
-// Función para llenar las sugerencias de concepto con las clases
 async function cargarSelectConceptos() {
   try {
     const res = await fetch(`${API}/clases`, { headers: headers() });
     if (res.ok) {
       const clases = await res.json();
       const datalist = document.getElementById('lista-clases-concepto');
-      
-      // Llenamos el datalist con los nombres de las clases
       datalist.innerHTML = clases.map(c => `<option value="${c.nombre}">`).join('');
     }
   } catch (error) {
@@ -885,12 +918,10 @@ async function descargarPDFInventario() {
   ventana.document.close();
 }
 
-
+// ---------- CAMBIAR CONTRASEÑA ----------
 async function cambiarPassword(id) {
-  // Pedimos la nueva contraseña mediante una ventana
   const nuevaPass = prompt('Ingresa la nueva contraseña para este usuario:');
   
-  // Si el usuario cancela o deja vacío, no hacemos nada
   if (!nuevaPass) return;
   
   if (nuevaPass.length < 4) {
