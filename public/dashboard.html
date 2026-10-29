@@ -24,6 +24,7 @@
   </nav>
 
   <main>
+    <!-- SECCIÓN DE PAGOS -->
     <section id="pagos" class="seccion">
       <h2>💰 Control de Ingresos</h2>
       
@@ -88,11 +89,9 @@
         <option value="">Cargando jugadores...</option>
       </select>
       
-      <!-- NUEVO CAMPO CON SUGERENCIAS DE CLASES -->
+      <!-- CAMPO CON SUGERENCIAS DE CLASES -->
       <input list="lista-clases-concepto" id="pago_concepto" placeholder="Concepto (o elige una clase)">
-      <datalist id="lista-clases-concepto">
-        <!-- Aquí Javascript inyectará las clases -->
-      </datalist>
+      <datalist id="lista-clases-concepto"></datalist>
 
       <input id="pago_monto" type="number" placeholder="Monto S/">
     
@@ -108,8 +107,9 @@
 
       <button onclick="crearPago()">Registrar</button>
       <div id="lista-pagos"></div>
+    </section> <!-- ¡AQUÍ FALTABA CERRAR LA SECCIÓN DE PAGOS! -->
     
-    <!-- SECCIÓN DE INVENTARIO ACTUALIZADA -->
+    <!-- SECCIÓN DE INVENTARIO -->
     <section id="inventario" class="seccion oculto">
       <h2>📦 Inventario</h2>
       
@@ -158,6 +158,7 @@
       <div id="lista-inventario"></div>
     </section>
 
+    <!-- SECCIÓN DE CLASES -->
     <section id="clases" class="seccion oculto">
       <h2>📅 Clases</h2>
       <input id="cl_nombre" placeholder="Nombre clase">
@@ -170,6 +171,7 @@
       <div id="lista-clases"></div>
     </section>
 
+    <!-- SECCIÓN DE USUARIOS -->
     <section id="usuarios" class="seccion oculto">
       <h2>👥 Usuarios</h2>
       
