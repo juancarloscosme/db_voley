@@ -82,32 +82,48 @@ function headers() {
 }
 
 // ---------- PAGOS ----------
+let chartInstance = null; // Variable global para el gráfico
+
 async function cargarPagos() {
   const res = await fetch(`${API}/pagos`, { headers: headers() });
   const data = await res.json();
   
-  // Obtener los valores de búsqueda y filtro
   const textoBusqueda = document.getElementById('buscar_pago').value.toLowerCase();
   const filtroEstado = document.getElementById('filtro_estado').value;
+  const filtroPeriodo = document.getElementById('filtro_periodo').value;
 
-  // 1. Filtrar los datos
+  const hoy = new Date();
+  const mesActual = hoy.getMonth();
+  const anioActual = hoy.getFullYear();
+
+  // 1. Aplicar los 3 filtros (Texto, Estado y Tiempo)
   const datosFiltrados = data.filter(p => {
-    // Validar búsqueda por nombre o concepto
-    const coincideTexto = 
-      p.nombre_jugador.toLowerCase().includes(textoBusqueda) || 
-      (p.concepto && p.concepto.toLowerCase().includes(textoBusqueda));
-    
-    // Validar filtro de estado
+    // Filtro de texto y estado
+    const coincideTexto = p.nombre_jugador.toLowerCase().includes(textoBusqueda) || (p.concepto && p.concepto.toLowerCase().includes(textoBusqueda));
     const coincideEstado = filtroEstado === 'todos' || p.estado === filtroEstado;
 
-    return coincideTexto && coincideEstado;
+    // Filtro de tiempo
+    let coincidePeriodo = true;
+    if (filtroPeriodo !== 'todos' && p.fecha_inicio) {
+      const fechaP = new Date(p.fecha_inicio);
+      if (filtroPeriodo === 'mes') {
+        coincidePeriodo = (fechaP.getMonth() === mesActual && fechaP.getFullYear() === anioActual);
+      } else if (filtroPeriodo === 'trimestre') {
+        const trimestreActual = Math.floor(mesActual / 3);
+        const trimestreP = Math.floor(fechaP.getMonth() / 3);
+        coincidePeriodo = (trimestreActual === trimestreP && fechaP.getFullYear() === anioActual);
+      } else if (filtroPeriodo === 'anio') {
+        coincidePeriodo = (fechaP.getFullYear() === anioActual);
+      }
+    }
+
+    return coincideTexto && coincideEstado && coincidePeriodo;
   });
 
-  // 2. Dibujar la tabla con los datos filtrados
+  // 2. Dibujar la lista filtrada (igual que antes)
   document.getElementById('lista-pagos').innerHTML = datosFiltrados.map(p => {
     const fInicio = p.fecha_inicio ? p.fecha_inicio.split('T')[0] : 'N/A';
     const fFin = p.fecha_vencimiento ? p.fecha_vencimiento.split('T')[0] : 'N/A';
-    
     return `
     <div class="row">
       <div>
@@ -117,34 +133,63 @@ async function cargarPagos() {
           <strong>Del:</strong> ${fInicio} | <strong>Al:</strong> ${fFin}
         </span>
       </div>
-      
       <div style="display:flex; gap: 8px; align-items:center;">
         <span class="estado ${p.estado}">${p.estado}</span>
-        
-        ${p.estado === 'pendiente' 
-          ? `<button onclick="pagar(${p.id})" style="background: #2ecc71; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Pagar</button>
-             <button onclick="eliminarPago(${p.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>` 
-          : ''}
-
-        ${p.estado === 'pagado' 
-          ? `<button onclick="anularPago(${p.id})" style="background: #f39c12; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Anular</button>` 
-          : ''}
+        ${p.estado === 'pendiente' ? `<button onclick="pagar(${p.id})" style="background: #2ecc71; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Pagar</button><button onclick="eliminarPago(${p.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>` : ''}
+        ${p.estado === 'pagado' ? `<button onclick="anularPago(${p.id})" style="background: #f39c12; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Anular</button>` : ''}
       </div>
-    </div>
-    `;
+    </div>`;
   }).join('');
 
-  if (datosFiltrados.length === 0) {
-    document.getElementById('lista-pagos').innerHTML = '<p style="text-align:center; color:#777;">No se encontraron pagos con esos filtros.</p>';
-  }
-
-  // 3. Actualizar los totales de arriba (usando todos los datos, no los filtrados)
+  // 3. Actualizar totales y DIBUJAR EL GRÁFICO
   const r = await fetch(`${API}/pagos/resumen`, { headers: headers() });
   const s = await r.json();
   document.getElementById('resumen-pagos').innerHTML = `
     <div>Pagados: ${s.pagados} (S/ ${s.total_pagado})</div>
     <div>Pendientes: ${s.pendientes} (S/ ${s.total_pendiente})</div>
   `;
+
+  actualizarGrafico(s);
+}
+
+// Función para el gráfico
+function actualizarGrafico(stats) {
+  const ctx = document.getElementById('miGrafico');
+  if (!ctx) return; // Si no estamos en la pestaña, no hace nada
+
+  // Si ya hay un gráfico, lo destruimos para redibujarlo
+  if (chartInstance) {
+    chartInstance.destroy();
+  }
+
+  chartInstance = new Chart(ctx, {
+    type: 'bar', // Tipo de gráfico (barras)
+    data: {
+      labels: ['Total Pagado (S/)', 'Total Pendiente (S/)'],
+      datasets: [{
+        label: 'Balance de Caja',
+        data: [stats.total_pagado, stats.total_pendiente],
+        backgroundColor: ['#2ecc71', '#f39c12'],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: 'Ingresos vs Pendientes', font: { size: 16 } }
+      }
+    }
+  });
+}
+
+// Función para mostrar/ocultar el gráfico
+function mostrarGraficos() {
+  const contenedor = document.getElementById('contenedor-graficos');
+  contenedor.classList.toggle('oculto');
+  if (!contenedor.classList.contains('oculto')) {
+    cargarPagos(); // Refresca los datos al abrirlo
+  }
 }
 
 // NUEVA FUNCIÓN PARA ELIMINAR PAGO

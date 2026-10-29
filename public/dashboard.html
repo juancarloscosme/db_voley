@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <title>Dashboard - Club Vóley</title>
   <link rel="stylesheet" href="/styles.css">
+  <!-- LIBRERÍA PARA LOS GRÁFICOS -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <header>
@@ -35,13 +37,33 @@
           <option value="pagado">Solo Pagados</option>
         </select>
 
-        <!-- NUEVOS BOTONES -->
+        <!-- NUEVO FILTRO DE TIEMPO -->
+        <select id="filtro_periodo" onchange="cargarPagos()" style="margin: 0;">
+          <option value="todos">Historial completo</option>
+          <option value="mes">Este Mes</option>
+          <option value="trimestre">Este Trimestre</option>
+          <option value="anio">Este Año</option>
+        </select>
+
         <button onclick="descargarExcel()" style="background: #27ae60; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer;">
           📊 Excel
         </button>
         <button onclick="descargarPDF()" style="background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer;">
           📄 PDF
         </button>
+      </div>
+
+      <!-- BOTÓN PARA VER GRÁFICOS -->
+      <div style="margin-bottom: 20px;">
+        <button onclick="mostrarGraficos()" style="background: #8e44ad; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer;">
+          📈 Ver Dashboard de Métricas
+        </button>
+      </div>
+
+      <!-- CONTENEDOR DEL GRÁFICO (Oculto por defecto) -->
+      <div id="contenedor-graficos" class="oculto" style="background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ddd;">
+        <h3>Estadísticas Visuales</h3>
+        <canvas id="miGrafico" height="80"></canvas>
       </div>
 
       <div id="resumen-pagos" class="stats"></div>
