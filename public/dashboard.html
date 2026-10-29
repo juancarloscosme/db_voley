@@ -21,6 +21,7 @@
     <button onclick="mostrar('inventario')">📦 Inventario</button>
     <button onclick="mostrar('clases')">📅 Clases</button>
     <button id="btn-usuarios" class="oculto" onclick="mostrar('usuarios')">👥 Usuarios</button>
+    <button onclick="mostrar('asistencias')">✅ Asistencias</button>
   </nav>
 
   <main>
@@ -192,6 +193,51 @@
       <h3>Lista de Usuarios</h3>
       <div id="lista-usuarios"></div>
     </section>
+
+    <!-- SECCIÓN DE ASISTENCIAS -->
+    <section id="asistencias" class="seccion oculto">
+      <h2>✅ Control de Asistencias</h2>
+      
+      <!-- FILTROS -->
+      <div style="display: flex; gap: 10px; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #ddd; flex-wrap: wrap;">
+        <select id="asis_clase" onchange="cargarAsistencias()" style="margin: 0;">
+          <option value="">Seleccione una clase</option>
+        </select>
+
+        <select id="asis_mes" onchange="cargarAsistencias()" style="margin: 0;">
+          <option value="todos">Todos los meses</option>
+          <option value="0">Enero</option>
+          <option value="1">Febrero</option>
+          <option value="2">Marzo</option>
+          <option value="3">Abril</option>
+          <option value="4">Mayo</option>
+          <option value="5">Junio</option>
+          <option value="6">Julio</option>
+          <option value="7">Agosto</option>
+          <option value="8">Septiembre</option>
+          <option value="9">Octubre</option>
+          <option value="10">Noviembre</option>
+          <option value="11">Diciembre</option>
+        </select>
+      </div>
+
+      <!-- FORMULARIO PARA MARCAR ASISTENCIA -->
+      <h3>Registrar Asistencia</h3>
+      <input type="date" id="asis_fecha" style="width: 150px;">
+      <select id="asis_jugador">
+        <option value="">Seleccione un jugador</option>
+      </select>
+      <select id="asis_estado">
+        <option value="1">Presente</option>
+        <option value="0">Falta</option>
+      </select>
+      <button onclick="marcarAsistencia()">Guardar Asistencia</button>
+
+      <!-- LISTA DE ASISTENCIAS -->
+      <h3>Historial de la clase</h3>
+      <div id="lista-asistencias"></div>
+    </section>
+
   </main>
 
   <script src="/app.js"></script>

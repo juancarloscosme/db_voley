@@ -76,6 +76,13 @@ function mostrar(id) {
   if (id === 'inventario') cargarInventario();
   if (id === 'clases') cargarClases();
   if (id === 'usuarios') cargarUsuarios();
+  
+  // NUEVO: Cargar asistencias
+  if (id === 'asistencias') {
+    cargarSelectClasesAsistencia();
+    cargarSelectJugadoresAsistencia();
+    cargarAsistencias();
+  }
 }
 
 function headers() {
@@ -940,5 +947,91 @@ async function cambiarPassword(id) {
   } else {
     const data = await res.json();
     alert('Error al cambiar la contraseña: ' + (data.error || 'Intenta de nuevo'));
+  }
+}
+
+// ---------- ASISTENCIAS ----------
+async function cargarSelectClasesAsistencia() {
+  const res = await fetch(`${API}/clases`, { headers: headers() });
+  if (res.ok) {
+    const clases = await res.json();
+    const select = document.getElementById('asis_clase');
+    select.innerHTML = '<option value="">Seleccione una clase</option>' + 
+      clases.map(c => `<option value="${c.id}">${c.nombre} (${c.dia_semana})</option>`).join('');
+  }
+}
+
+async function cargarSelectJugadoresAsistencia() {
+  const res = await fetch(`${API}/usuarios/jugadores`, { headers: headers() });
+  if (res.ok) {
+    const jugadores = await res.json();
+    const select = document.getElementById('asis_jugador');
+    select.innerHTML = '<option value="">Seleccione un jugador</option>' + 
+      jugadores.map(j => `<option value="${j.id}">${j.nombre}</option>`).join('');
+  }
+}
+
+async function cargarAsistencias() {
+  const claseId = document.getElementById('asis_clase').value;
+  const mes = document.getElementById('asis_mes').value;
+
+  // Si no se selecciona clase, vaciamos la lista
+  if (!claseId) {
+    document.getElementById('lista-asistencias').innerHTML = '<p style="text-align:center; color:#777;">Selecciona una clase para ver la asistencia.</p>';
+    return;
+  }
+
+  const res = await fetch(`${API}/clases/${claseId}/asistencia`, { headers: headers() });
+  const data = await res.json();
+
+  // Filtrar por mes (si no es "todos")
+  const filtrados = data.filter(a => {
+    if (mes === 'todos') return true;
+    const fechaA = new Date(a.fecha);
+    return fechaA.getMonth() === parseInt(mes);
+  });
+
+  if (filtrados.length === 0) {
+    document.getElementById('lista-asistencias').innerHTML = '<p style="text-align:center; color:#777;">No hay asistencias registradas en este mes.</p>';
+    return;
+  }
+
+  document.getElementById('lista-asistencias').innerHTML = filtrados.map(a => {
+    const estadoHtml = a.presente ? '<span style="color: #2ecc71; font-weight:bold;">Presente</span>' : '<span style="color: #e74c3c; font-weight:bold;">Falta</span>';
+    return `
+    <div class="row">
+      <span><strong>${a.fecha.split('T')[0]}</strong> - ${a.jugador}</span>
+      <div>${estadoHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+async function marcarAsistencia() {
+  const claseId = document.getElementById('asis_clase').value;
+  const jugadorId = document.getElementById('asis_jugador').value;
+  const fecha = document.getElementById('asis_fecha').value;
+  const presente = parseInt(document.getElementById('asis_estado').value);
+
+  if (!claseId || !jugadorId || !fecha) {
+    alert('Por favor, selecciona la clase, el jugador y la fecha.');
+    return;
+  }
+
+  const res = await fetch(`${API}/clases/${claseId}/asistencia`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({
+      jugador_id: jugadorId,
+      presente: presente,
+      observacion: 'Registrado desde el panel'
+    })
+  });
+
+  if (res.ok) {
+    alert('Asistencia guardada correctamente');
+    document.getElementById('asis_fecha').value = '';
+    cargarAsistencias(); // Recargar la lista
+  } else {
+    alert('Error al guardar la asistencia');
   }
 }
