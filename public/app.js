@@ -91,37 +91,29 @@ async function cargarPagos() {
   const textoBusqueda = document.getElementById('buscar_pago').value.toLowerCase();
   const filtroEstado = document.getElementById('filtro_estado').value;
   
-  // Capturamos los nuevos filtros
   const filtroMes = document.getElementById('filtro_mes').value;
   const filtroAnio = document.getElementById('filtro_anio').value;
 
-  // 1. Aplicar los filtros
   const datosFiltrados = data.filter(p => {
-    // Filtro de texto y estado
     const coincideTexto = p.nombre_jugador.toLowerCase().includes(textoBusqueda) || (p.concepto && p.concepto.toLowerCase().includes(textoBusqueda));
     const coincideEstado = filtroEstado === 'todos' || p.estado === filtroEstado;
 
-    // Filtro de tiempo (Mes / Año)
     let coincideTiempo = true;
     if (p.fecha_inicio) {
       const fechaP = new Date(p.fecha_inicio);
-      // Validar Mes (si no es "todos")
       if (filtroMes !== 'todos' && fechaP.getMonth() !== parseInt(filtroMes)) {
         coincideTiempo = false;
       }
-      // Validar Año (si no es "todos")
       if (filtroAnio !== 'todos' && fechaP.getFullYear() !== parseInt(filtroAnio)) {
         coincideTiempo = false;
       }
     } else if (filtroMes !== 'todos' || filtroAnio !== 'todos') {
-      // Si el pago no tiene fecha de inicio, y estamos filtrando por fecha, lo ocultamos
       coincideTiempo = false; 
     }
 
     return coincideTexto && coincideEstado && coincideTiempo;
   });
 
-  // 2. Dibujar la lista
   document.getElementById('lista-pagos').innerHTML = datosFiltrados.map(p => {
     const fInicio = p.fecha_inicio ? p.fecha_inicio.split('T')[0] : 'N/A';
     const fFin = p.fecha_vencimiento ? p.fecha_vencimiento.split('T')[0] : 'N/A';
@@ -146,7 +138,6 @@ async function cargarPagos() {
     document.getElementById('lista-pagos').innerHTML = '<p style="text-align:center; color:#777; padding: 20px;">No hay pagos registrados en este periodo.</p>';
   }
 
-  // 3. Actualizar los totales generales (opcional: podrías sumar solo los filtrados si quisieras)
   const r = await fetch(`${API}/pagos/resumen`, { headers: headers() });
   const s = await r.json();
   document.getElementById('resumen-pagos').innerHTML = `
@@ -154,11 +145,9 @@ async function cargarPagos() {
     <div>Pendientes Totales: ${s.pendientes} (S/ ${s.total_pendiente})</div>
   `;
 
-  // 4. Actualizar el gráfico solo si estamos en esa vista
   actualizarGrafico(s);
 }
 
-// Función para el gráfico (se mantiene igual)
 function actualizarGrafico(stats) {
   const ctx = document.getElementById('miGrafico');
   if (!ctx) return;
@@ -196,47 +185,6 @@ function mostrarGraficos() {
   }
 }
 
-// Función para el gráfico
-function actualizarGrafico(stats) {
-  const ctx = document.getElementById('miGrafico');
-  if (!ctx) return; // Si no estamos en la pestaña, no hace nada
-
-  // Si ya hay un gráfico, lo destruimos para redibujarlo
-  if (chartInstance) {
-    chartInstance.destroy();
-  }
-
-  chartInstance = new Chart(ctx, {
-    type: 'bar', // Tipo de gráfico (barras)
-    data: {
-      labels: ['Total Pagado (S/)', 'Total Pendiente (S/)'],
-      datasets: [{
-        label: 'Balance de Caja',
-        data: [stats.total_pagado, stats.total_pendiente],
-        backgroundColor: ['#2ecc71', '#f39c12'],
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { display: false },
-        title: { display: true, text: 'Ingresos vs Pendientes', font: { size: 16 } }
-      }
-    }
-  });
-}
-
-// Función para mostrar/ocultar el gráfico
-function mostrarGraficos() {
-  const contenedor = document.getElementById('contenedor-graficos');
-  contenedor.classList.toggle('oculto');
-  if (!contenedor.classList.contains('oculto')) {
-    cargarPagos(); // Refresca los datos al abrirlo
-  }
-}
-
-// NUEVA FUNCIÓN PARA ELIMINAR PAGO
 async function eliminarPago(id) {
   if (!confirm('⚠️ ¿Estás seguro de eliminar este pago para siempre? Esta acción no se puede deshacer.')) return;
   
@@ -246,7 +194,7 @@ async function eliminarPago(id) {
   });
   
   if (res.ok) {
-    cargarPagos(); // Recargar la lista
+    cargarPagos();
   } else {
     alert('Error al eliminar el pago');
   }
@@ -265,8 +213,7 @@ async function crearPago() {
     return;
   }
 
-  // Calculamos la fecha de fin a partir de la fecha de inicio elegida
-  const fechaInicio = new Date(fechaInicioVal + 'T00:00:00'); // Evita problemas de zona horaria
+  const fechaInicio = new Date(fechaInicioVal + 'T00:00:00');
   const fechaFin = new Date(fechaInicio); 
   
   if (tipo === 'dias') {
@@ -285,12 +232,11 @@ async function crearPago() {
       jugador_id: jugador_id,
       concepto: concepto,
       monto: monto,
-      fecha_inicio: fechaInicioVal, // Enviamos la que eligió el usuario
-      fecha_vencimiento: fechaFinString // Enviamos la calculada
+      fecha_inicio: fechaInicioVal,
+      fecha_vencimiento: fechaFinString
     })
   });
   
-  // Limpiar cajas
   document.getElementById('pago_concepto').value = '';
   document.getElementById('pago_monto').value = '';
   document.getElementById('pago_fecha_inicio').value = '';
@@ -317,7 +263,7 @@ async function cargarInventario() {
   
   const buscar = document.getElementById('buscar_inv').value.toLowerCase();
   const cat = document.getElementById('filtro_cat').value;
-  const mesFiltro = document.getElementById('filtro_mes_inv').value; // Formato "YYYY-MM"
+  const mesFiltro = document.getElementById('filtro_mes_inv').value;
 
   const filtrados = data.filter(i => {
     const coincideTexto = i.item.toLowerCase().includes(buscar);
@@ -333,12 +279,16 @@ async function cargarInventario() {
     return coincideTexto && coincideCat && coincideMes;
   });
 
-  document.getElementById('lista-inventario').innerHTML = filtrados.map(i => `
+  document.getElementById('lista-inventario').innerHTML = filtrados.map(i => {
+    // CORRECCIÓN: Formatear la fecha para que no salga con la hora
+    const fIngreso = i.fecha_ingreso ? i.fecha_ingreso.split('T')[0] : 'N/A';
+
+    return `
     <div class="row">
       <div>
         <strong>${i.item} (${i.categoria}) x${i.cantidad}</strong> <br>
         <span style="font-size: 0.9em; color: #555;">
-          Vida útil: ${i.vida_util_meses} meses | Prov: ${i.proveedor || 'N/A'} | Ingreso: ${i.fecha_ingreso || 'N/A'}
+          Vida útil: ${i.vida_util_meses} meses | Prov: ${i.proveedor || 'N/A'} | Ingreso: ${fIngreso}
         </span>
       </div>
       <div style="display: flex; gap: 10px; align-items: center;">
@@ -346,8 +296,9 @@ async function cargarInventario() {
         <button onclick="eliminarItem(${i.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>
       </div>
     </div>
-  `).join('');
+  `}).join('');
 }
+
 async function eliminarItem(id) {
   if (!confirm('¿Estás seguro de eliminar este item del inventario?')) return;
   
@@ -377,7 +328,6 @@ async function crearItem() {
     })
   });
   
-  // Limpiar cajas
   document.getElementById('inv_item').value = '';
   document.getElementById('inv_cat').value = '';
   document.getElementById('inv_cant').value = '';
@@ -520,13 +470,11 @@ async function cargarSelectJugadores() {
     const jugadores = await res.json();
     const select = document.getElementById('pago_jugador');
     
-    // Si la base de datos responde vacía
     if (jugadores.length === 0) {
       select.innerHTML = '<option value="">No hay jugadores registrados</option>';
       return;
     }
     
-    // Si hay jugadores, los pinta en la lista
     select.innerHTML = '<option value="">Seleccione un jugador</option>' + 
       jugadores.map(j => `<option value="${j.id}">${j.nombre}</option>`).join('');
   } else {
@@ -534,8 +482,7 @@ async function cargarSelectJugadores() {
   }
 }
 
-
-// Función para obtener los datos según los filtros de la pantalla
+// ---------- FILTROS PARA REPORTES ----------
 async function obtenerDatosFiltrados() {
   const res = await fetch(`${API}/pagos`, { headers: headers() });
   const data = await res.json();
@@ -562,9 +509,8 @@ async function obtenerDatosFiltrados() {
   });
 }
 
-// ---------- REPORTE EXCEL ----------
+// ---------- REPORTE EXCEL (PAGOS) ----------
 async function descargarExcel() {
-  // Usamos los datos filtrados
   const data = await obtenerDatosFiltrados();
 
   if (data.length === 0) {
@@ -589,9 +535,9 @@ async function descargarExcel() {
   link.click();
   document.body.removeChild(link);
 }
-// ---------- REPORTE PDF ----------
+
+// ---------- REPORTE PDF (PAGOS) ----------
 async function descargarPDF() {
-  // Usamos los datos filtrados
   const data = await obtenerDatosFiltrados();
 
   if (data.length === 0) {
@@ -599,7 +545,6 @@ async function descargarPDF() {
     return;
   }
 
-  // Calculamos los totales SOLO de los datos filtrados
   let totalPagado = 0;
   let totalPendiente = 0;
   let countPagados = 0;
@@ -689,6 +634,7 @@ async function descargarPDF() {
   ventana.document.close();
 }
 
+// ---------- REPORTE EXCEL (INVENTARIO) ----------
 async function descargarExcelInventario() {
   const res = await fetch(`${API}/inventario`, { headers: headers() });
   const data = await res.json();
@@ -702,7 +648,8 @@ async function descargarExcelInventario() {
   csvContent += "ID,Item,Categoria,Cantidad,Proveedor,Fecha Ingreso,Estado,Vida Util\n";
 
   data.forEach(i => {
-    csvContent += `${i.id},${i.item},${i.categoria},${i.cantidad},${i.proveedor || ''},${i.fecha_ingreso || ''},${i.estado},${i.vida_util_meses}\n`;
+    const fIngreso = i.fecha_ingreso ? i.fecha_ingreso.split('T')[0] : '';
+    csvContent += `${i.id},${i.item},${i.categoria},${i.cantidad},${i.proveedor || ''},${fIngreso},${i.estado},${i.vida_util_meses}\n`;
   });
 
   const encodedUri = encodeURI(csvContent);
@@ -712,4 +659,79 @@ async function descargarExcelInventario() {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+}
+
+// ---------- REPORTE PDF (INVENTARIO) ----------
+async function descargarPDFInventario() {
+  const res = await fetch(`${API}/inventario`, { headers: headers() });
+  const data = await res.json();
+
+  if (data.length === 0) {
+    alert('No hay items para exportar');
+    return;
+  }
+
+  const ventana = window.open('', '_blank');
+  
+  let html = `
+    <html>
+    <head>
+      <title>Reporte de Inventario - Club Vóley</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h1 { color: #1f4e79; text-align: center; }
+        .fecha { text-align: right; font-size: 12px; color: #666; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+        th { background-color: #1f4e79; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+      </style>
+    </head>
+    <body>
+      <h1>📦 Reporte de Inventario</h1>
+      <div class="fecha">Generado el: ${new Date().toLocaleDateString('es-PE')}</div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Item</th>
+            <th>Categoría</th>
+            <th>Cant.</th>
+            <th>Proveedor</th>
+            <th>Ingreso</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  data.forEach(i => {
+    const fIngreso = i.fecha_ingreso ? i.fecha_ingreso.split('T')[0] : 'N/A';
+    
+    html += `
+      <tr>
+        <td>${i.id}</td>
+        <td>${i.item}</td>
+        <td>${i.categoria}</td>
+        <td>${i.cantidad}</td>
+        <td>${i.proveedor || 'N/A'}</td>
+        <td>${fIngreso}</td>
+        <td>${i.estado.toUpperCase()}</td>
+      </tr>
+    `;
+  });
+
+  html += `
+        </tbody>
+      </table>
+      <script>
+        window.onload = function() { window.print(); }
+      </script>
+    </body>
+    </html>
+  `;
+
+  ventana.document.write(html);
+  ventana.document.close();
 }
