@@ -72,4 +72,17 @@ router.get('/resumen', permitirRoles('admin', 'cajero'), async (req, res) => {
   }
 });
 
+// Anular pago (volver a pendiente)
+router.put('/:id/anular', permitirRoles('admin', 'cajero'), async (req, res) => {
+  try {
+    await pool.query(
+      `UPDATE pagos SET estado = 'pendiente', fecha_pago = NULL WHERE id = ?`,
+      [req.params.id]
+    );
+    res.json({ mensaje: 'Pago anulado' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
