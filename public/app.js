@@ -172,3 +172,34 @@ async function cargarUsuarios() {
     </div>
   `).join('');
 }
+async function crearUsuario() {
+  const nombre = document.getElementById('usr_nombre').value;
+  const email = document.getElementById('usr_email').value;
+  const password = document.getElementById('usr_pass').value;
+  const rol = document.getElementById('usr_rol').value;
+
+  if (!nombre || !email || !password) {
+    alert('Por favor, llena todos los campos');
+    return;
+  }
+
+  const res = await fetch(`${API}/auth/registro`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nombre, email, password, rol })
+  });
+
+  const data = await res.json();
+
+  if (data.error) {
+    alert('Error: ' + data.error);
+  } else {
+    alert('Usuario creado exitosamente');
+    // Limpiar los campos
+    document.getElementById('usr_nombre').value = '';
+    document.getElementById('usr_email').value = '';
+    document.getElementById('usr_pass').value = '';
+    // Recargar la lista
+    cargarUsuarios();
+  }
+}

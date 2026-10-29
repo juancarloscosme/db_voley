@@ -63,6 +63,23 @@
 
     <section id="usuarios" class="seccion oculto">
       <h2>👥 Usuarios</h2>
+      
+      <!-- NUEVO FORMULARIO PARA CREAR USUARIOS -->
+      <h3>Crear nuevo usuario</h3>
+      <input id="usr_nombre" placeholder="Nombre completo">
+      <input id="usr_email" type="email" placeholder="Correo">
+      <input id="usr_pass" type="password" placeholder="Contraseña">
+      <select id="usr_rol">
+        <option value="jugador">Jugador</option>
+        <option value="entrenador">Entrenador</option>
+        <option value="cajero">Cajero</option>
+        <option value="admin">Administrador</option>
+      </select>
+      <button onclick="crearUsuario()">Crear Usuario</button>
+      
+      <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+      
+      <h3>Lista de Usuarios</h3>
       <div id="lista-usuarios"></div>
     </section>
   </main>
