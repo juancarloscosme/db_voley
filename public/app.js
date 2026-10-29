@@ -88,7 +88,15 @@ async function cargarPagos() {
   
   document.getElementById('lista-pagos').innerHTML = data.map(p => `
     <div class="row">
-      <span>#${p.id} - ${p.concepto} - S/ ${p.monto}</span>
+      <!-- AQUÍ AGREGAMOS LOS DATOS COMPLETOS -->
+      <div>
+        <strong>#${p.id} - ${p.nombre_jugador}</strong> <br>
+        <span style="font-size: 0.9em; color: #555;">
+          ${p.concepto} - S/ ${p.monto} 
+          ${p.fecha_vencimiento ? `(Vence: ${p.fecha_vencimiento.split('T')[0]})` : ''}
+        </span>
+      </div>
+      
       <div style="display:flex; gap: 10px; align-items:center;">
         <span class="estado ${p.estado}">${p.estado}</span>
         

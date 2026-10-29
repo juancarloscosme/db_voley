@@ -35,26 +35,33 @@ router.put('/:id/pagar', permitirRoles('admin', 'cajero'), async (req, res) => {
 });
 
 // Listar pagos (jugador ve solo los suyos)
+// Listar pagos (jugador ve solo los suyos, admin ve todos)
 router.get('/', async (req, res) => {
   try {
     let query, params;
+    
+    // Consulta base que trae el nombre del jugador
+    const selectBase = `
+      SELECT p.*, u.nombre AS nombre_jugador 
+      FROM pagos p
+      JOIN jugadores j ON p.jugador_id = j.id
+      JOIN usuarios u ON j.usuario_id = u.id
+    `;
+
     if (req.usuario.rol === 'jugador') {
-      query = `SELECT p.* FROM pagos p
-               JOIN jugadores j ON p.jugador_id = j.id
-               WHERE j.usuario_id = ?
-               ORDER BY p.fecha_vencimiento DESC`;
+      query = `${selectBase} WHERE j.usuario_id = ? ORDER BY p.fecha_vencimiento DESC`;
       params = [req.usuario.id];
     } else {
-      query = 'SELECT * FROM pagos ORDER BY fecha_vencimiento DESC';
+      query = `${selectBase} ORDER BY p.fecha_vencimiento DESC`;
       params = [];
     }
+    
     const [rows] = await pool.query(query, params);
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
 // Resumen de caja
 router.get('/resumen', permitirRoles('admin', 'cajero'), async (req, res) => {
   try {
