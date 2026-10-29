@@ -43,12 +43,19 @@ function logout() {
 if (window.location.pathname.includes('dashboard')) {
   const rol = localStorage.getItem('rol');
   if (!token()) window.location.href = '/';
+  
   document.getElementById('user-info').textContent =
     `${localStorage.getItem('nombre')} (${rol})`;
+
+  // NUEVO: Mostrar botón de usuarios solo si es admin
+  if (rol === 'admin') {
+    document.getElementById('btn-usuarios').classList.remove('oculto');
+    cargarUsuarios();
+  }
+
   cargarPagos();
   cargarInventario();
   cargarClases();
-  if (rol === 'admin') cargarUsuarios();
 }
 
 function mostrar(id) {
