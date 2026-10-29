@@ -85,12 +85,21 @@ function headers() {
 async function cargarPagos() {
   const res = await fetch(`${API}/pagos`, { headers: headers() });
   const data = await res.json();
+  
   document.getElementById('lista-pagos').innerHTML = data.map(p => `
     <div class="row">
       <span>#${p.id} - ${p.concepto} - S/ ${p.monto}</span>
-      <span class="estado ${p.estado}">${p.estado}</span>
-      ${p.estado === 'pendiente'
-        ? `<button onclick="pagar(${p.id})">Pagar</button>` : ''}
+      <div style="display:flex; gap: 10px; align-items:center;">
+        <span class="estado ${p.estado}">${p.estado}</span>
+        
+        ${p.estado === 'pendiente' 
+          ? `<button onclick="pagar(${p.id})" style="background: #2ecc71; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Pagar</button>` 
+          : ''}
+
+        ${p.estado === 'pagado' 
+          ? `<button onclick="anularPago(${p.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Anular</button>` 
+          : ''}
+      </div>
     </div>
   `).join('');
 
@@ -112,11 +121,23 @@ async function crearPago() {
       fecha_vencimiento: document.getElementById('pago_venc').value
     })
   });
+  
+  // Limpiar cajas
+  document.getElementById('pago_concepto').value = '';
+  document.getElementById('pago_monto').value = '';
+  document.getElementById('pago_venc').value = '';
+  
   cargarPagos();
 }
 
 async function pagar(id) {
   await fetch(`${API}/pagos/${id}/pagar`, { method: 'PUT', headers: headers() });
+  cargarPagos();
+}
+
+async function anularPago(id) {
+  if (!confirm('¿Estás seguro de anular este pago? Volverá a estado pendiente.')) return;
+  await fetch(`${API}/pagos/${id}/anular`, { method: 'PUT', headers: headers() });
   cargarPagos();
 }
 
