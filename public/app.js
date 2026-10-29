@@ -86,8 +86,25 @@ async function cargarPagos() {
   const res = await fetch(`${API}/pagos`, { headers: headers() });
   const data = await res.json();
   
-  document.getElementById('lista-pagos').innerHTML = data.map(p => {
-    // Formatear fechas para que se vean bonitas (DD/MM/AAAA)
+  // Obtener los valores de búsqueda y filtro
+  const textoBusqueda = document.getElementById('buscar_pago').value.toLowerCase();
+  const filtroEstado = document.getElementById('filtro_estado').value;
+
+  // 1. Filtrar los datos
+  const datosFiltrados = data.filter(p => {
+    // Validar búsqueda por nombre o concepto
+    const coincideTexto = 
+      p.nombre_jugador.toLowerCase().includes(textoBusqueda) || 
+      (p.concepto && p.concepto.toLowerCase().includes(textoBusqueda));
+    
+    // Validar filtro de estado
+    const coincideEstado = filtroEstado === 'todos' || p.estado === filtroEstado;
+
+    return coincideTexto && coincideEstado;
+  });
+
+  // 2. Dibujar la tabla con los datos filtrados
+  document.getElementById('lista-pagos').innerHTML = datosFiltrados.map(p => {
     const fInicio = p.fecha_inicio ? p.fecha_inicio.split('T')[0] : 'N/A';
     const fFin = p.fecha_vencimiento ? p.fecha_vencimiento.split('T')[0] : 'N/A';
     
@@ -105,10 +122,9 @@ async function cargarPagos() {
         <span class="estado ${p.estado}">${p.estado}</span>
         
         ${p.estado === 'pendiente' 
-          ? `
-            <button onclick="pagar(${p.id})" style="background: #2ecc71; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Pagar</button>
-            <button onclick="eliminarPago(${p.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>
-          ` : ''}
+          ? `<button onclick="pagar(${p.id})" style="background: #2ecc71; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Pagar</button>
+             <button onclick="eliminarPago(${p.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>` 
+          : ''}
 
         ${p.estado === 'pagado' 
           ? `<button onclick="anularPago(${p.id})" style="background: #f39c12; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Anular</button>` 
@@ -118,6 +134,11 @@ async function cargarPagos() {
     `;
   }).join('');
 
+  if (datosFiltrados.length === 0) {
+    document.getElementById('lista-pagos').innerHTML = '<p style="text-align:center; color:#777;">No se encontraron pagos con esos filtros.</p>';
+  }
+
+  // 3. Actualizar los totales de arriba (usando todos los datos, no los filtrados)
   const r = await fetch(`${API}/pagos/resumen`, { headers: headers() });
   const s = await r.json();
   document.getElementById('resumen-pagos').innerHTML = `
@@ -125,6 +146,7 @@ async function cargarPagos() {
     <div>Pendientes: ${s.pendientes} (S/ ${s.total_pendiente})</div>
   `;
 }
+
 // NUEVA FUNCIÓN PARA ELIMINAR PAGO
 async function eliminarPago(id) {
   if (!confirm('⚠️ ¿Estás seguro de eliminar este pago para siempre? Esta acción no se puede deshacer.')) return;
@@ -394,4 +416,34 @@ async function cargarSelectJugadores() {
   } else {
     document.getElementById('pago_jugador').innerHTML = '<option value="">Error al cargar</option>';
   }
+}
+
+async function descargarReporte() {
+  const res = await fetch(`${API}/pagos`, { headers: headers() });
+  const data = await res.json();
+
+  if (data.length === 0) {
+    alert('No hay pagos para exportar');
+    return;
+  }
+
+  // Crear el encabezado del CSV
+  let csvContent = "data:text/csv;charset=utf-8,";
+  csvContent += "ID,Jugador,Concepto,Monto,Fecha Inicio,Fecha Fin,Estado\n";
+
+  // Llenar las filas
+  data.forEach(p => {
+    const fInicio = p.fecha_inicio ? p.fecha_inicio.split('T')[0] : '';
+    const fFin = p.fecha_vencimiento ? p.fecha_vencimiento.split('T')[0] : '';
+    csvContent += `${p.id},${p.nombre_jugador},${p.concepto},${p.monto},${fInicio},${fFin},${p.estado}\n`;
+  });
+
+  // Crear el archivo y forzar la descarga
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", "reporte_pagos_voley.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }

@@ -24,6 +24,20 @@
   <main>
         <section id="pagos" class="seccion">
       <h2>💰 Control de Ingresos</h2>
+      <div style="display: flex; gap: 10px; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
+        <input type="text" id="buscar_pago" placeholder="🔍 Buscar por jugador o concepto..." oninput="cargarPagos()" style="flex: 1; margin: 0;">
+        
+        <select id="filtro_estado" onchange="cargarPagos()" style="margin: 0;">
+          <option value="todos">Todos los estados</option>
+          <option value="pendiente">Solo Pendientes</option>
+          <option value="pagado">Solo Pagados</option>
+        </select>
+
+        <button onclick="descargarReporte()" style="background: #3498db; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer;">
+          📥 Descargar Reporte
+        </button>
+      </div>
+
       <div id="resumen-pagos" class="stats"></div>
       
       <h3>Registrar pago</h3>
