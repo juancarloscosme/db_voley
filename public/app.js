@@ -319,16 +319,21 @@ async function eliminarUsuario(id) {
 // ---------- SELECT DE JUGADORES PARA PAGOS ----------
 async function cargarSelectJugadores() {
   const res = await fetch(`${API}/usuarios/jugadores`, { headers: headers() });
+  
   if (res.ok) {
     const jugadores = await res.json();
     const select = document.getElementById('pago_jugador');
     
+    // Si la base de datos responde vacía
     if (jugadores.length === 0) {
       select.innerHTML = '<option value="">No hay jugadores registrados</option>';
       return;
     }
     
+    // Si hay jugadores, los pinta en la lista
     select.innerHTML = '<option value="">Seleccione un jugador</option>' + 
-      jugadores.map(j => `<option value="${j.id}">${j.nombre} (ID: ${j.id})</option>`).join('');
+      jugadores.map(j => `<option value="${j.id}">${j.nombre}</option>`).join('');
+  } else {
+    document.getElementById('pago_jugador').innerHTML = '<option value="">Error al cargar</option>';
   }
 }
