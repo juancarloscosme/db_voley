@@ -99,18 +99,20 @@ async function cargarPagos() {
       <div style="display:flex; gap: 8px; align-items:center;">
         <span class="estado ${p.estado}">${p.estado}</span>
         
-        <!-- Botón Pagar (solo si está pendiente) -->
         ${p.estado === 'pendiente' 
-          ? `<button onclick="pagar(${p.id})" style="background: #2ecc71; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Pagar</button>` 
+          ? `
+            <button onclick="pagar(${p.id})" style="background: #2ecc71; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Pagar</button>
+            <!-- ELIMINAR SOLO SI ESTÁ PENDIENTE -->
+            <button onclick="eliminarPago(${p.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Eliminar registro">❌</button>
+          ` 
           : ''}
 
-        <!-- Botón Anular (solo si está pagado) -->
         ${p.estado === 'pagado' 
-          ? `<button onclick="anularPago(${p.id})" style="background: #f39c12; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Anular</button>` 
+          ? `
+            <!-- SOLO ANULAR SI ESTÁ PAGADO -->
+            <button onclick="anularPago(${p.id})" style="background: #f39c12; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Anular</button>
+          ` 
           : ''}
-
-        <!-- NUEVO: Botón Eliminar (para ambos estados) -->
-        <button onclick="eliminarPago(${p.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>
       </div>
     </div>
   `).join('');
@@ -122,7 +124,6 @@ async function cargarPagos() {
     <div>Pendientes: ${s.pendientes} (S/ ${s.total_pendiente})</div>
   `;
 }
-
 // NUEVA FUNCIÓN PARA ELIMINAR PAGO
 async function eliminarPago(id) {
   if (!confirm('⚠️ ¿Estás seguro de eliminar este pago para siempre? Esta acción no se puede deshacer.')) return;
