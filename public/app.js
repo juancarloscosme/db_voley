@@ -58,10 +58,19 @@ if (window.location.pathname.includes('dashboard')) {
   cargarClases();
 }
 
+// Modifica tu función mostrar() para que cargue el select
 function mostrar(id) {
+  if (id === 'usuarios' && localStorage.getItem('rol') !== 'admin') {
+    alert('No tienes permisos para ver esta sección');
+    return;
+  }
   document.querySelectorAll('.seccion').forEach(s => s.classList.add('oculto'));
   document.getElementById(id).classList.remove('oculto');
-  if (id === 'pagos') cargarPagos();
+  
+  if (id === 'pagos') {
+    cargarPagos();
+    cargarSelectJugadores(); // <--- AGREGAMOS ESTO
+  }
   if (id === 'inventario') cargarInventario();
   if (id === 'clases') cargarClases();
   if (id === 'usuarios') cargarUsuarios();
@@ -210,3 +219,22 @@ async function crearUsuario() {
     cargarUsuarios();
   }
 }
+
+
+// Agrega esta función para llenar el select
+async function cargarSelectJugadores() {
+  const res = await fetch(`${API}/usuarios/jugadores`, { headers: headers() });
+  if (res.ok) {
+    const jugadores = await res.json();
+    const select = document.getElementById('pago_jugador');
+    
+    if (jugadores.length === 0) {
+      select.innerHTML = '<option value="">No hay jugadores registrados</option>';
+      return;
+    }
+    
+    select.innerHTML = '<option value="">Seleccione un jugador</option>' + 
+      jugadores.map(j => `<option value="${j.id}">${j.nombre} (ID: ${j.id})</option>`).join('');
+  }
+}
+

@@ -22,18 +22,23 @@
   </nav>
 
   <main>
-    <section id="pagos" class="seccion">
+        <section id="pagos" class="seccion">
       <h2>💰 Control de Ingresos</h2>
       <div id="resumen-pagos" class="stats"></div>
+      
       <h3>Registrar pago</h3>
-      <input id="pago_jugador" type="number" placeholder="ID Jugador">
+      <!-- Cambiamos ID por un select -->
+      <select id="pago_jugador">
+        <option value="">Cargando jugadores...</option>
+      </select>
+      
       <input id="pago_concepto" placeholder="Concepto (mensualidad)">
       <input id="pago_monto" type="number" placeholder="Monto S/">
       <input id="pago_venc" type="date">
       <button onclick="crearPago()">Registrar</button>
       <div id="lista-pagos"></div>
     </section>
-
+    
     <section id="inventario" class="seccion oculto">
       <h2>📦 Inventario</h2>
       <input id="inv_item" placeholder="Item (balón)">

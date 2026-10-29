@@ -45,4 +45,20 @@ router.put('/:id/desactivar', permitirRoles('admin'), async (req, res) => {
   }
 });
 
+
+// Obtener lista de jugadores para el select
+router.get('/jugadores', async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT j.id, u.nombre 
+       FROM jugadores j 
+       JOIN usuarios u ON j.usuario_id = u.id`
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 module.exports = router;
