@@ -188,6 +188,8 @@ async function cargarUsuarios() {
     </div>
   `).join('');
 }
+
+
 async function crearUsuario() {
   const nombre = document.getElementById('usr_nombre').value;
   const email = document.getElementById('usr_email').value;
@@ -201,7 +203,7 @@ async function crearUsuario() {
 
   const res = await fetch(`${API}/auth/registro`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: headers(), // <--- LA MAGIA ESTÁ AQUÍ (Envía el token JWT)
     body: JSON.stringify({ nombre, email, password, rol })
   });
 
@@ -211,15 +213,12 @@ async function crearUsuario() {
     alert('Error: ' + data.error);
   } else {
     alert('Usuario creado exitosamente');
-    // Limpiar los campos
     document.getElementById('usr_nombre').value = '';
     document.getElementById('usr_email').value = '';
     document.getElementById('usr_pass').value = '';
-    // Recargar la lista
     cargarUsuarios();
   }
 }
-
 
 // Agrega esta función para llenar el select
 async function cargarSelectJugadores() {
