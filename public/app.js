@@ -418,7 +418,8 @@ async function cargarSelectJugadores() {
   }
 }
 
-async function descargarReporte() {
+// ---------- REPORTE EXCEL ----------
+async function descargarExcel() {
   const res = await fetch(`${API}/pagos`, { headers: headers() });
   const data = await res.json();
 
@@ -427,23 +428,113 @@ async function descargarReporte() {
     return;
   }
 
-  // Crear el encabezado del CSV
   let csvContent = "data:text/csv;charset=utf-8,";
+  // Agregamos BOM para que Excel reconozca las tildes (ñ, á, etc)
+  csvContent += "\uFEFF"; 
   csvContent += "ID,Jugador,Concepto,Monto,Fecha Inicio,Fecha Fin,Estado\n";
 
-  // Llenar las filas
   data.forEach(p => {
     const fInicio = p.fecha_inicio ? p.fecha_inicio.split('T')[0] : '';
     const fFin = p.fecha_vencimiento ? p.fecha_vencimiento.split('T')[0] : '';
     csvContent += `${p.id},${p.nombre_jugador},${p.concepto},${p.monto},${fInicio},${fFin},${p.estado}\n`;
   });
 
-  // Crear el archivo y forzar la descarga
   const encodedUri = encodeURI(csvContent);
   const link = document.createElement("a");
   link.setAttribute("href", encodedUri);
-  link.setAttribute("download", "reporte_pagos_voley.csv");
+  link.setAttribute("download", "Reporte_Pagos_Voley.csv");
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+}
+
+// ---------- REPORTE PDF ----------
+async function descargarPDF() {
+  const res = await fetch(`${API}/pagos`, { headers: headers() });
+  const data = await res.json();
+
+  if (data.length === 0) {
+    alert('No hay pagos para exportar');
+    return;
+  }
+
+  // Obtenemos los totales
+  const r = await fetch(`${API}/pagos/resumen`, { headers: headers() });
+  const s = await r.json();
+
+  // Abrimos una nueva ventana en blanco
+  const ventana = window.open('', '_blank');
+  
+  // Creamos el diseño HTML para el PDF
+  let html = `
+    <html>
+    <head>
+      <title>Reporte de Ingresos - Club Vóley</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h1 { color: #1f4e79; text-align: center; }
+        .fecha { text-align: right; font-size: 12px; color: #666; margin-bottom: 20px; }
+        .resumen { background: #eaf2fb; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-around; }
+        .resumen div { font-weight: bold; font-size: 16px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+        th { background-color: #1f4e79; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .pagado { color: #27ae60; font-weight: bold; }
+        .pendiente { color: #f39c12; font-weight: bold; }
+      </style>
+    </head>
+    <body>
+      <h1>🏐 Reporte de Control de Ingresos</h1>
+      <div class="fecha">Generado el: ${new Date().toLocaleDateString('es-PE')}</div>
+      
+      <div class="resumen">
+        <div style="color: #27ae60;">Total Pagados: S/ ${s.total_pagado} (${s.pagados} registros)</div>
+        <div style="color: #f39c12;">Total Pendientes: S/ ${s.total_pendiente} (${s.pendientes} registros)</div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Jugador</th>
+            <th>Concepto</th>
+            <th>Monto</th>
+            <th>Inicio</th>
+            <th>Fin</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  data.forEach(p => {
+    const fInicio = p.fecha_inicio ? p.fecha_inicio.split('T')[0] : 'N/A';
+    const fFin = p.fecha_vencimiento ? p.fecha_vencimiento.split('T')[0] : 'N/A';
+    html += `
+      <tr>
+        <td>${p.id}</td>
+        <td>${p.nombre_jugador}</td>
+        <td>${p.concepto}</td>
+        <td>S/ ${p.monto}</td>
+        <td>${fInicio}</td>
+        <td>${fFin}</td>
+        <td class="${p.estado}">${p.estado.toUpperCase()}</td>
+      </tr>
+    `;
+  });
+
+  html += `
+        </tbody>
+      </table>
+      <script>
+        // Esto abre automáticamente la ventana de impresión (Guardar como PDF)
+        window.onload = function() { window.print(); }
+      </script>
+    </body>
+    </html>
+  `;
+
+  ventana.document.write(html);
+  ventana.document.close();
 }

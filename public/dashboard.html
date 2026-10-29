@@ -14,7 +14,7 @@
     </div>
   </header>
 
-    <nav>
+  <nav>
     <button onclick="mostrar('pagos')">💰 Ingresos</button>
     <button onclick="mostrar('inventario')">📦 Inventario</button>
     <button onclick="mostrar('clases')">📅 Clases</button>
@@ -22,10 +22,12 @@
   </nav>
 
   <main>
-        <section id="pagos" class="seccion">
+    <section id="pagos" class="seccion">
       <h2>💰 Control de Ingresos</h2>
-      <div style="display: flex; gap: 10px; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
-        <input type="text" id="buscar_pago" placeholder="🔍 Buscar por jugador o concepto..." oninput="cargarPagos()" style="flex: 1; margin: 0;">
+      
+      <!-- BARRA DE HERRAMIENTAS -->
+      <div style="display: flex; gap: 10px; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #ddd; flex-wrap: wrap;">
+        <input type="text" id="buscar_pago" placeholder="🔍 Buscar por jugador o concepto..." oninput="cargarPagos()" style="flex: 1; margin: 0; min-width: 200px;">
         
         <select id="filtro_estado" onchange="cargarPagos()" style="margin: 0;">
           <option value="todos">Todos los estados</option>
@@ -33,15 +35,18 @@
           <option value="pagado">Solo Pagados</option>
         </select>
 
-        <button onclick="descargarReporte()" style="background: #3498db; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer;">
-          📥 Descargar Reporte
+        <!-- NUEVOS BOTONES -->
+        <button onclick="descargarExcel()" style="background: #27ae60; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer;">
+          📊 Excel
+        </button>
+        <button onclick="descargarPDF()" style="background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer;">
+          📄 PDF
         </button>
       </div>
 
       <div id="resumen-pagos" class="stats"></div>
       
       <h3>Registrar pago</h3>
-      <!-- Cambiamos ID por un select -->
       <select id="pago_jugador">
         <option value="">Cargando jugadores...</option>
       </select>
@@ -49,18 +54,15 @@
       <input id="pago_concepto" placeholder="Concepto (mensualidad)">
       <input id="pago_monto" type="number" placeholder="Monto S/">
     
-<!-- NUEVO: Fecha de inicio -->
       <label style="font-size: 0.9em; margin-left: 5px;">Inicio:</label>
       <input id="pago_fecha_inicio" type="date" style="width: 130px;">
 
-      <!-- Duración -->
       <input id="pago_duracion" type="number" placeholder="Duración" style="width: 80px;" min="1">
       <select id="pago_tipo_duracion">
         <option value="dias">Días</option>
         <option value="meses" selected>Meses</option>
         <option value="anios">Años</option>
       </select>
-
 
       <button onclick="crearPago()">Registrar</button>
       <div id="lista-pagos"></div>
@@ -96,7 +98,6 @@
     <section id="usuarios" class="seccion oculto">
       <h2>👥 Usuarios</h2>
       
-      <!-- NUEVO FORMULARIO PARA CREAR USUARIOS -->
       <h3>Crear nuevo usuario</h3>
       <input id="usr_nombre" placeholder="Nombre completo">
       <input id="usr_email" type="email" placeholder="Correo">
