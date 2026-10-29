@@ -31,10 +31,11 @@ router.put('/:id/rol', permitirRoles('admin'), async (req, res) => {
   }
 });
 
-// Desactivar usuario
-router.put('/:id/desactivar', permitirRoles('admin'), async (req, res) => {
+// Dar de baja (Desactivar) o Reactivar
+router.put('/:id/estado', permitirRoles('admin'), async (req, res) => {
   try {
-    await pool.query('UPDATE usuarios SET activo = 0 WHERE id = ?', [req.params.id]);
+    const { activo } = req.body; // Recibe 1 (activo) o 0 (inactivo)
+    await pool.query('UPDATE usuarios SET activo = ? WHERE id = ?', [activo, req.params.id]);
     const [rows] = await pool.query(
       'SELECT id, nombre, activo FROM usuarios WHERE id = ?',
       [req.params.id]
@@ -45,20 +46,31 @@ router.put('/:id/desactivar', permitirRoles('admin'), async (req, res) => {
   }
 });
 
+// Eliminar usuario definitivamente
+router.delete('/:id', permitirRoles('admin'), async (req, res) => {
+  try {
+    // Gracias al ON DELETE CASCADE en tu base de datos, si es jugador 
+    // también se borrarán sus pagos y asistencias.
+    await pool.query('DELETE FROM usuarios WHERE id = ?', [req.params.id]);
+    res.json({ mensaje: 'Usuario eliminado' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-// Obtener lista de jugadores para el select
+// Obtener lista de jugadores para el select de pagos
 router.get('/jugadores', async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT j.id, u.nombre 
        FROM jugadores j 
-       JOIN usuarios u ON j.usuario_id = u.id`
+       JOIN usuarios u ON j.usuario_id = u.id
+       WHERE u.activo = 1` // Solo muestra jugadores activos
     );
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
 
 module.exports = router;
