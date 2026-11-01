@@ -7,32 +7,57 @@ const { verificarToken, permitirRoles } = require('../middleware/auth');
 // Registro (Solo admin, pero permite el primero si la BD está vacía)
 router.post('/registro', async (req, res) => {
   try {
-    // 1. Agregamos 'dni' a la captura de datos
     const { nombre, email, password, rol, telefono, direccion, dni } = req.body;
 
     if (!nombre || !email || !password) {
       return res.status(400).json({ error: 'Faltan datos obligatorios' });
     }
 
-    const [existe] = await pool.query('SELECT id FROM usuarios WHERE email = ?', [email]);
+    // 1. Buscamos si el correo ya existe Y su estado
+    const [existe] = await pool.query('SELECT id, activo FROM usuarios WHERE email = ?', [email]);
+    
     if (existe.length > 0) {
-      return res.status(400).json({ error: 'El email ya está registrado' });
+      const usuarioExistente = existe[0];
+
+      // Si está ACTIVO, lanzamos el error normal
+      if (usuarioExistente.activo === 1) {
+        return res.status(400).json({ error: 'El email ya está registrado' });
+      } 
+      
+      // Si está DE BAJA, lo actualizamos y lo reactivamos
+      const hash = await bcrypt.hash(password, 10);
+      await pool.query(
+        `UPDATE usuarios 
+         SET nombre = ?, password_hash = ?, rol = ?, telefono = ?, direccion = ?, dni = ?, activo = 1 
+         WHERE id = ?`,
+        [nombre, hash, rol || 'jugador', telefono, direccion, dni, usuarioExistente.id]
+      );
+
+      // Si es jugador, nos aseguramos que tenga su perfil
+      if (rol === 'jugador') {
+        const [perfil] = await pool.query('SELECT id FROM jugadores WHERE usuario_id = ?', [usuarioExistente.id]);
+        if (perfil.length === 0) {
+          await pool.query(
+            `INSERT INTO jugadores (usuario_id, categoria, posicion, dorsal) VALUES (?, 'Sin categoría', 'Por definir', 0)`,
+            [usuarioExistente.id]
+          );
+        }
+      }
+      
+      return res.json({ mensaje: 'Usuario reactivado y actualizado' });
     }
 
+    // 2. Si el correo no existe, lo creamos desde cero (código normal)
     const hash = await bcrypt.hash(password, 10);
-    const rolFinal = rol || 'jugador';
-
-    // 2. Agregamos 'dni' al INSERT
     const [result] = await pool.query(
       `INSERT INTO usuarios (nombre, email, password_hash, rol, telefono, direccion, dni) 
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [nombre, email, hash, rolFinal, telefono || null, direccion || null, dni || null]
+      [nombre, email, hash, rol || 'jugador', telefono, direccion, dni]
     );
 
-    if (rolFinal === 'jugador') {
+    if (rol === 'jugador') {
       await pool.query(
-        `INSERT INTO jugadores (usuario_id, categoria, posicion, dorsal) 
-         VALUES (?, 'Sin categoría', 'Por definir', 0)`,
+        `INSERT INTO jugadores (usuario_id, categoria, posicion, dorsal) VALUES (?, 'Sin categoría', 'Por definir', 0)`,
         [result.insertId]
       );
     }
