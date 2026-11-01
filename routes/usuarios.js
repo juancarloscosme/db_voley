@@ -61,13 +61,15 @@ router.delete('/:id', permitirRoles('admin'), async (req, res) => {
 
 // Obtener lista de jugadores para el select de pagos
 // Obtener lista de jugadores
+// Obtener lista de jugadores (para pagos, asistencias, etc.)
 router.get('/jugadores', async (req, res) => {
   try {
+    // Usamos LEFT JOIN para que traiga a los jugadores aunque no tengan usuario de login
     const [rows] = await pool.query(
-      `SELECT j.id, u.nombre, j.tutor_id 
+      `SELECT j.id, COALESCE(u.nombre, j.nombre_completo) AS nombre, j.tutor_id 
        FROM jugadores j 
-       JOIN usuarios u ON j.usuario_id = u.id
-       WHERE u.activo = 1`
+       LEFT JOIN usuarios u ON j.usuario_id = u.id
+       WHERE (u.activo = 1 OR u.id IS NULL)`
     );
     res.json(rows);
   } catch (err) {

@@ -1568,10 +1568,17 @@ async function cargarSelectFamilias() {
     const usuarios = await resPadres.json();
     const padres = usuarios.filter(u => u.rol === 'padre');
     
-    document.getElementById('fam_tutor').innerHTML = '<option value="">Seleccione Apoderado</option>' + 
+    const select = document.getElementById('fam_tutor');
+    select.innerHTML = '<option value="">Seleccione Apoderado</option>' + 
       padres.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
       
-    document.getElementById('detalle-familia').innerHTML = '<p style="color: #777;">Seleccione un apoderado para ver a sus hijos.</p>';
+    // Si hay al menos un padre, seleccionamos el primero por defecto y cargamos sus hijos
+    if (padres.length > 0) {
+      select.value = padres[0].id;
+      cargarFamiliaSeleccionada();
+    } else {
+      document.getElementById('detalle-familia').innerHTML = '<p style="color: #777;">No hay apoderados registrados.</p>';
+    }
   }
 }
 
