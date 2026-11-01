@@ -65,7 +65,7 @@ router.get('/jugadores', async (req, res) => {
       `SELECT j.id, u.nombre 
        FROM jugadores j 
        JOIN usuarios u ON j.usuario_id = u.id
-       WHERE u.activo = 1` // Solo muestra jugadores activos
+       WHERE u.activo = 1` // <--- AGREGAMOS ESTO
     );
     res.json(rows);
   } catch (err) {

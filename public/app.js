@@ -1387,16 +1387,39 @@ async function cargarListaAlumnos() {
     return;
   }
 
-  // Obtenemos todos los jugadores
-  const res = await fetch(`${API}/usuarios/jugadores`, { headers: headers() });
-  const jugadores = await res.json();
+  // 1. Obtenemos el nombre de la clase seleccionada para buscar coincidencias
+  const selectClase = document.getElementById('asis_clase');
+  const nombreClase = selectClase.options[selectClase.selectedIndex].text.split(' (')[0]; // Quitamos el día
 
-  // Obtenemos las asistencias ya guardadas de esta clase en esta fecha
+  // 2. Obtenemos todos los pagos para saber qué alumnos están inscritos en esta clase
+  const resPagos = await fetch(`${API}/pagos`, { headers: headers() });
+  const pagos = await resPagos.json();
+
+  // 3. Filtramos los IDs de los jugadores que tienen un pago con el nombre de esta clase
+  const idsAlumnosInscritos = [...new Set(
+    pagos
+      .filter(p => p.concepto && p.concepto.includes(nombreClase))
+      .map(p => p.jugador_id)
+  )];
+
+  if (idsAlumnosInscritos.length === 0) {
+    document.getElementById('lista-alumnos-asistencia').innerHTML = '<p style="text-align:center; color:#777; padding: 20px;">No hay alumnos inscritos en esta clase (no se encontraron pagos).</p>';
+    return;
+  }
+
+  // 4. Obtenemos los datos de los jugadores y sus asistencias previas
+  const resJugadores = await fetch(`${API}/usuarios/jugadores`, { headers: headers() });
+  const todosJugadores = await resJugadores.json();
+  
+  // Filtramos los jugadores que sí están inscritos
+  const jugadoresInscritos = todosJugadores.filter(j => idsAlumnosInscritos.includes(j.id));
+
   const resAsis = await fetch(`${API}/clases/${claseId}/asistencia`, { headers: headers() });
   const asistenciasGuardadas = await resAsis.json();
 
+  // 5. Dibujamos la lista
   let html = '';
-  jugadores.forEach(j => {
+  jugadoresInscritos.forEach(j => {
     // Verificamos si este jugador ya tiene asistencia marcada en esta fecha
     const registro = asistenciasGuardadas.find(a => 
       a.jugador === j.nombre && a.fecha.startsWith(fecha)
