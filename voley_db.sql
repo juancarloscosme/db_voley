@@ -137,3 +137,11 @@ ALTER TABLE jugadores ADD COLUMN nombre_completo VARCHAR(100) DEFAULT NULL;
 ALTER TABLE jugadores ADD COLUMN telefono VARCHAR(20) DEFAULT NULL;
 ALTER TABLE jugadores MODIFY usuario_id INT NULL;
 ALTER TABLE usuarios MODIFY rol ENUM('admin', 'entrenador', 'jugador', 'padre', 'cajero', 'directivo', 'voluntario');
+INSERT INTO usuarios (nombre, email, password_hash, rol, activo) 
+VALUES (
+  'Admin Principal', 
+  'admin@voley.com', 
+  '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 
+  'admin', 
+  1
+);
