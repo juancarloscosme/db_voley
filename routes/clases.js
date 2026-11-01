@@ -20,13 +20,18 @@ router.get('/', async (req, res) => {
 });
 
 // Crear clase
+// Crear clase
 router.post('/', permitirRoles('admin', 'entrenador'), async (req, res) => {
   try {
     const { nombre, categoria, dia_semana, hora_inicio, hora_fin, cancha } = req.body;
+    
+    // LA MAGIA ESTÁ AQUÍ: Cortamos el texto a 15 caracteres en el backend
+    const diaSeguro = dia_semana ? dia_semana.substring(0, 15) : '';
+
     const [result] = await pool.query(
       `INSERT INTO clases (nombre, categoria, entrenador_id, dia_semana, hora_inicio, hora_fin, cancha)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [nombre, categoria, req.usuario.id, dia_semana, hora_inicio, hora_fin, cancha]
+      [nombre, categoria, req.usuario.id, diaSeguro, hora_inicio, hora_fin, cancha]
     );
     const [rows] = await pool.query('SELECT * FROM clases WHERE id = ?', [result.insertId]);
     res.json(rows[0]);
@@ -34,7 +39,6 @@ router.post('/', permitirRoles('admin', 'entrenador'), async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 // Registrar asistencia
 router.post('/:clase_id/asistencia', permitirRoles('admin', 'entrenador'), async (req, res) => {
   try {
