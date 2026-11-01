@@ -517,19 +517,21 @@ async function editarClase(id) {
   const res = await fetch(`${API}/clases`, { headers: headers() });
   const data = await res.json();
   const c = data.find(clase => clase.id === id);
-
   if (!c) return;
 
   const nombre = prompt('Nombre de la clase:', c.nombre);
   const categoria = prompt('Categoría:', c.categoria);
-  const dia = prompt('Día:', c.dia_semana);
+  
+  // Mostramos los días actuales al usuario (él puede escribir si desea)
+  const dia = prompt('Días (separados por coma, ej. Lunes, Miércoles):', c.dia_semana);
+  
   const inicio = prompt('Hora Inicio (HH:MM):', c.hora_inicio ? c.hora_inicio.slice(0, 5) : '');
   const fin = prompt('Hora Fin (HH:MM):', c.hora_fin ? c.hora_fin.slice(0, 5) : '');
   const cancha = prompt('Cancha:', c.cancha);
 
-  if (nombre === null || categoria === null) return;
+  if (nombre === null || dia === null) return;
 
-  const updateRes = await fetch(`${API}/clases/${id}`, {
+  await fetch(`${API}/clases/${id}`, {
     method: 'PUT',
     headers: headers(),
     body: JSON.stringify({
@@ -537,32 +539,49 @@ async function editarClase(id) {
     })
   });
 
-  if (updateRes.ok) {
-    cargarClases();
-  } else {
-    alert('Error al editar la clase');
-  }
+  cargarClases();
 }
 
 async function crearClase() {
+  // 1. Recolectamos los días seleccionados
+  const checkboxes = document.querySelectorAll('.chk-dia:checked');
+  const diasSeleccionados = Array.from(checkboxes).map(cb => cb.value);
+  
+  // Si no seleccionó ningún día, avisamos
+  if (diasSeleccionados.length === 0) {
+    alert('Por favor, selecciona al menos un día para la clase.');
+    return;
+  }
+
+  // Los unimos con comas (ej. "Lunes, Miércoles, Viernes")
+  const dia_semana = diasSeleccionados.join(', ');
+
+  const datosClase = {
+    nombre: document.getElementById('cl_nombre').value,
+    categoria: document.getElementById('cl_cat').value,
+    dia_semana: dia_semana, // Pasamos el texto armado
+    hora_inicio: document.getElementById('cl_ini').value,
+    hora_fin: document.getElementById('cl_fin').value,
+    cancha: document.getElementById('cl_cancha').value
+  };
+
+  if (!datosClase.nombre || !datosClase.hora_inicio || !datosClase.hora_fin) {
+    alert('Por favor, llena el nombre y los horarios.');
+    return;
+  }
+
   await fetch(`${API}/clases`, {
     method: 'POST', headers: headers(),
-    body: JSON.stringify({
-      nombre: document.getElementById('cl_nombre').value,
-      categoria: document.getElementById('cl_cat').value,
-      dia_semana: document.getElementById('cl_dia').value,
-      hora_inicio: document.getElementById('cl_ini').value,
-      hora_fin: document.getElementById('cl_fin').value,
-      cancha: document.getElementById('cl_cancha').value
-    })
+    body: JSON.stringify(datosClase)
   });
 
+  // Limpiamos el formulario
   document.getElementById('cl_nombre').value = '';
   document.getElementById('cl_cat').value = '';
-  document.getElementById('cl_dia').value = '';
   document.getElementById('cl_ini').value = '';
   document.getElementById('cl_fin').value = '';
   document.getElementById('cl_cancha').value = '';
+  document.querySelectorAll('.chk-dia:checked').forEach(cb => cb.checked = false); // Desmarcar casillas
 
   cargarClases();
 }
