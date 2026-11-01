@@ -558,7 +558,9 @@ async function crearClase() {
     return;
   }
 
-  const dia_semana = diasSeleccionados.join(', ');
+  // LA MAGIA ESTÁ AQUÍ: Cortamos el texto a 15 caracteres como máximo
+  const dia_semana = diasSeleccionados.join(', ').substring(0, 15); 
+
   const nombre = document.getElementById('cl_nombre').value;
   const categoria = document.getElementById('cl_cat').value;
   const hora_inicio = document.getElementById('cl_ini').value;
@@ -570,22 +572,18 @@ async function crearClase() {
     return;
   }
 
-  // Enviamos los datos al servidor
   const res = await fetch(`${API}/clases`, {
     method: 'POST', headers: headers(),
     body: JSON.stringify({ nombre, categoria, dia_semana, hora_inicio, hora_fin, cancha })
   });
 
   if (res.ok) {
-    // Limpiamos el formulario
     document.getElementById('cl_nombre').value = '';
     document.getElementById('cl_cat').value = '';
     document.getElementById('cl_ini').value = '';
     document.getElementById('cl_fin').value = '';
     document.getElementById('cl_cancha').value = '';
     document.querySelectorAll('.chk-dia:checked').forEach(cb => cb.checked = false);
-
-    // Recargamos la lista
     cargarClases();
   } else {
     alert('Error al guardar la clase. Revisa la consola.');
