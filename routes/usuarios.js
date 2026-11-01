@@ -59,13 +59,14 @@ router.delete('/:id', permitirRoles('admin'), async (req, res) => {
 });
 
 // Obtener lista de jugadores para el select de pagos
+// Obtener lista de jugadores
 router.get('/jugadores', async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT j.id, u.nombre 
+      `SELECT j.id, u.nombre, j.tutor_id 
        FROM jugadores j 
        JOIN usuarios u ON j.usuario_id = u.id
-       WHERE u.activo = 1` // <--- AGREGAMOS ESTO
+       WHERE u.activo = 1`
     );
     res.json(rows);
   } catch (err) {

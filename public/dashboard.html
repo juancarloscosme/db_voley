@@ -341,27 +341,44 @@
 
 
        <!-- SECCIÓN DE FAMILIAS -->
+    <!-- SECCIÓN DE FAMILIAS -->
     <section id="familias" class="seccion oculto">
-      <h2>👨‍👩‍👦 Registro de Familias (Apoderados y Alumnos)</h2>
+      <h2>👨‍👩‍👦 Registro de Familias</h2>
       
-      <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-        <!-- Formulario para vincular -->
+      <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px;">
+        
+        <!-- COLUMNA 1: VINCULAR / CREAR -->
         <div style="flex: 1; min-width: 300px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ddd;">
-          <h3>Vincular Apoderado con Alumno</h3>
-          <label><strong>1. Seleccione al Apoderado:</strong></label><br>
-          <select id="fam_tutor" style="width: 100%; margin-bottom: 10px;">
+          <h3>1. Seleccionar Apoderado</h3>
+          <select id="fam_tutor" onchange="cargarFamiliaSeleccionada()" style="width: 100%; margin-bottom: 15px;">
             <option value="">Cargando apoderados...</option>
           </select>
 
-          <label><strong>2. Seleccione al Alumno (Jugador):</strong></label><br>
-          <select id="fam_jugador" style="width: 100%; margin-bottom: 10px;">
-            <option value="">Cargando alumnos...</option>
-          </select>
-
-          <button onclick="vincularFamilia()" style="background: #2980b9; color: white; border: none; padding: 10px; width: 100%; border-radius: 6px; cursor: pointer;">Vincular Familia</button>
+          <hr style="margin: 15px 0;">
+          
+          <h3>2. Registrar un Nuevo Hijo (Jugador)</h3>
+          <p style="font-size: 0.9em; color: #666;">El hijo se creará automáticamente vinculado a este apoderado.</p>
+          
+          <input id="fam_hijo_nombre" placeholder="Nombre completo del hijo" style="width: 100%; margin-bottom: 8px;">
+          <input id="fam_hijo_email" type="email" placeholder="Correo del hijo" style="width: 100%; margin-bottom: 8px;">
+          <input id="fam_hijo_pass" type="password" placeholder="Contraseña para el hijo" style="width: 100%; margin-bottom: 8px;">
+          <input id="fam_hijo_tel" placeholder="Teléfono del hijo (opcional)" style="width: 100%; margin-bottom: 8px;">
+          
+          <button onclick="registrarHijo()" style="background: #27ae60; color: white; border: none; padding: 10px; width: 100%; border-radius: 6px; cursor: pointer; font-weight: bold;">
+            + Guardar Hijo
+          </button>
         </div>
+
+        <!-- COLUMNA 2: DETALLE DE LA FAMILIA -->
+        <div style="flex: 2; min-width: 400px; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+          <h3>Detalle de la Familia</h3>
+          <div id="detalle-familia">
+            <p style="color: #777;">Seleccione un apoderado para ver a sus hijos.</p>
+          </div>
+        </div>
+
       </div>
-    </section> 
+    </section>
 
   </main>
 

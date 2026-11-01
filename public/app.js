@@ -1541,44 +1541,117 @@ async function eliminarEvaluacion(id) {
 
 // ---------- FAMILIAS ----------
 async function cargarSelectFamilias() {
-  // Cargar Apoderados (rol 'padre')
   const resPadres = await fetch(`${API}/usuarios`, { headers: headers() });
   if (resPadres.ok) {
     const usuarios = await resPadres.json();
     const padres = usuarios.filter(u => u.rol === 'padre');
+    
     document.getElementById('fam_tutor').innerHTML = '<option value="">Seleccione Apoderado</option>' + 
       padres.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
-  }
-
-  // Cargar Jugadores (rol 'jugador')
-  const resJugadores = await fetch(`${API}/usuarios/jugadores`, { headers: headers() });
-  if (resJugadores.ok) {
-    const jugadores = await resJugadores.json();
-    document.getElementById('fam_jugador').innerHTML = '<option value="">Seleccione Alumno</option>' + 
-      jugadores.map(j => `<option value="${j.id}">${j.nombre}</option>`).join('');
+      
+    document.getElementById('detalle-familia').innerHTML = '<p style="color: #777;">Seleccione un apoderado para ver a sus hijos.</p>';
   }
 }
 
-async function vincularFamilia() {
+// Función para crear al hijo y vincularlo automáticamente al padre
+async function registrarHijo() {
   const tutor_id = document.getElementById('fam_tutor').value;
-  const jugador_id = document.getElementById('fam_jugador').value;
+  const nombre = document.getElementById('fam_hijo_nombre').value;
+  const email = document.getElementById('fam_hijo_email').value;
+  const password = document.getElementById('fam_hijo_pass').value;
+  const telefono = document.getElementById('fam_hijo_tel').value;
 
-  if (!tutor_id || !jugador_id) {
-    alert('Seleccione un apoderado y un alumno');
+  if (!tutor_id) {
+    alert('Por favor, primero selecciona al apoderado en el paso 1.');
     return;
   }
 
-  const res = await fetch(`${API}/usuarios/${jugador_id}/tutor`, {
-    method: 'PUT',
+  if (!nombre || !email || !password) {
+    alert('Por favor, llena el nombre, correo y contraseña del hijo.');
+    return;
+  }
+
+  // 1. Registramos al hijo como usuario con rol "jugador"
+  const res = await fetch(`${API}/auth/registro`, {
+    method: 'POST',
     headers: headers(),
-    body: JSON.stringify({ tutor_id: tutor_id })
+    body: JSON.stringify({ nombre, email, password, rol: 'jugador', telefono, direccion: '' })
   });
 
-  if (res.ok) {
-    alert('✅ Apoderado vinculado al alumno correctamente.');
+  const data = await res.json();
+
+  if (data.error) {
+    alert('Error al crear al hijo: ' + data.error);
   } else {
-    alert('Error al vincular.');
+    // 2. Una vez creado, lo vinculamos al padre usando la ruta que creamos
+    // data.id es el ID del nuevo usuario. Buscamos su perfil de jugador.
+    
+    // NOTA: Como en la tabla 'jugadores' se crea automáticamente el perfil, 
+    // necesitamos obtener el ID de ese perfil para actualizar el tutor.
+    const resJugadores = await fetch(`${API}/usuarios/jugadores`, { headers: headers() });
+    const jugadores = await resJugadores.json();
+    const nuevoJugador = jugadores.find(j => j.nombre === nombre);
+
+    if (nuevoJugador) {
+      await fetch(`${API}/usuarios/${nuevoJugador.id}/tutor`, {
+        method: 'PUT',
+        headers: headers(),
+        body: JSON.stringify({ tutor_id: tutor_id })
+      });
+      
+      alert('✅ Hijo registrado y vinculado exitosamente.');
+      document.getElementById('fam_hijo_nombre').value = '';
+      document.getElementById('fam_hijo_email').value = '';
+      document.getElementById('fam_hijo_pass').value = '';
+      document.getElementById('fam_hijo_tel').value = '';
+      
+      cargarFamiliaSeleccionada(); // Recargar la vista para que aparezca
+    }
   }
+}
+
+// Función para mostrar el padre y sus hijos (Vista 360 de la familia)
+async function cargarFamiliaSeleccionada() {
+  const tutor_id = document.getElementById('fam_tutor').value;
+  if (!tutor_id) {
+    document.getElementById('detalle-familia').innerHTML = '<p style="color: #777;">Seleccione un apoderado para ver a sus hijos.</p>';
+    return;
+  }
+
+  const resUsers = await fetch(`${API}/usuarios`, { headers: headers() });
+  const usuarios = await resUsers.json();
+  const padre = usuarios.find(u => u.id == tutor_id);
+
+  const resJugadores = await fetch(`${API}/usuarios/jugadores`, { headers: headers() });
+  const todosJugadores = await resJugadores.json();
+
+  // Filtramos SOLO los jugadores que tienen el tutor_id de este padre
+  const hijos = todosJugadores.filter(j => j.tutor_id == tutor_id);
+
+  let html = `
+    <div style="background: #eaf2fb; padding: 10px; border-radius: 6px; margin-bottom: 15px;">
+      <h4 style="margin: 0;">Apoderado: ${padre.nombre}</h4>
+      <p style="margin: 5px 0; font-size: 0.9em;">📧 ${padre.email} | 📱 ${padre.telefono || 'Sin teléfono'}</p>
+    </div>
+    <h4>Hijos a cargo (${hijos.length})</h4>
+  `;
+
+  if (hijos.length === 0) {
+    html += '<p style="color: #777;">Este apoderado aún no tiene hijos registrados.</p>';
+  } else {
+    html += '<ul style="list-style: none; padding: 0;">';
+    hijos.forEach(h => {
+      html += `
+        <li style="padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+          <strong>${h.nombre}</strong>
+          <span style="font-size: 0.8em; color: #3498db; cursor: pointer;" onclick="mostrar('expediente'); document.getElementById('exp_jugador').value=${h.id}; cargarExpediente();">Ver Expediente 👉</span>
+        </li>
+      `;
+    });
+    html += '</ul>';
+  }
+
+  document.getElementById('detalle-familia').innerHTML = html;
 }
 
 // Función para Editar Usuario (que me pediste en la captura)
