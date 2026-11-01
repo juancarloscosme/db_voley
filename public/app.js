@@ -491,13 +491,20 @@ async function cargarClases() {
   const res = await fetch(`${API}/clases`, { headers: headers() });
   const data = await res.json();
   
+  // Si no hay clases, mostramos un mensaje
+  if (data.length === 0) {
+    document.getElementById('lista-clases').innerHTML = '<p style="text-align:center; color:#777;">No hay clases registradas aún.</p>';
+    return;
+  }
+
   document.getElementById('lista-clases').innerHTML = data.map(c => {
+    // Recortamos los segundos de la hora (HH:MM)
     const inicioLimpio = c.hora_inicio ? c.hora_inicio.slice(0, 5) : '';
     const finLimpio = c.hora_fin ? c.hora_fin.slice(0, 5) : '';
 
     return `
     <div class="row">
-      <span>${c.nombre} - ${c.categoria} - ${c.dia_semana} ${inicioLimpio} a ${finLimpio}</span>
+      <span><strong>${c.nombre}</strong> - ${c.categoria} - ${c.dia_semana} ${inicioLimpio} a ${finLimpio}</span>
       <div style="display:flex; gap: 10px; align-items:center;">
         <span>${c.cancha || ''}</span>
         <button onclick="editarClase(${c.id})" style="background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">✏️</button>
@@ -543,52 +550,46 @@ async function editarClase(id) {
 }
 
 async function crearClase() {
-  // 1. Recolectamos los días seleccionados en las casillas
   const checkboxes = document.querySelectorAll('.chk-dia:checked');
   const diasSeleccionados = Array.from(checkboxes).map(cb => cb.value);
   
-  // Si no marcó ningún día, le avisamos
   if (diasSeleccionados.length === 0) {
     alert('Por favor, selecciona al menos un día para la clase.');
     return;
   }
 
-  // Los unimos en un solo texto (ej. "Lunes, Miércoles")
   const dia_semana = diasSeleccionados.join(', ');
+  const nombre = document.getElementById('cl_nombre').value;
+  const categoria = document.getElementById('cl_cat').value;
+  const hora_inicio = document.getElementById('cl_ini').value;
+  const hora_fin = document.getElementById('cl_fin').value;
+  const cancha = document.getElementById('cl_cancha').value;
 
-  // 2. Capturamos los demás datos
-  const datosClase = {
-    nombre: document.getElementById('cl_nombre').value,
-    categoria: document.getElementById('cl_cat').value,
-    dia_semana: dia_semana,
-    hora_inicio: document.getElementById('cl_ini').value,
-    hora_fin: document.getElementById('cl_fin').value,
-    cancha: document.getElementById('cl_cancha').value
-  };
-
-  if (!datosClase.nombre || !datosClase.hora_inicio || !datosClase.hora_fin) {
+  if (!nombre || !hora_inicio || !hora_fin) {
     alert('Por favor, llena el nombre de la clase y los horarios.');
     return;
   }
 
-  // 3. Enviamos los datos al servidor
-  await fetch(`${API}/clases`, {
+  // Enviamos los datos al servidor
+  const res = await fetch(`${API}/clases`, {
     method: 'POST', headers: headers(),
-    body: JSON.stringify(datosClase)
+    body: JSON.stringify({ nombre, categoria, dia_semana, hora_inicio, hora_fin, cancha })
   });
 
-  // 4. Limpiamos el formulario
-  document.getElementById('cl_nombre').value = '';
-  document.getElementById('cl_cat').value = '';
-  document.getElementById('cl_ini').value = '';
-  document.getElementById('cl_fin').value = '';
-  document.getElementById('cl_cancha').value = '';
-  
-  // Desmarcamos las casillas de los días
-  document.querySelectorAll('.chk-dia:checked').forEach(cb => cb.checked = false);
+  if (res.ok) {
+    // Limpiamos el formulario
+    document.getElementById('cl_nombre').value = '';
+    document.getElementById('cl_cat').value = '';
+    document.getElementById('cl_ini').value = '';
+    document.getElementById('cl_fin').value = '';
+    document.getElementById('cl_cancha').value = '';
+    document.querySelectorAll('.chk-dia:checked').forEach(cb => cb.checked = false);
 
-  // 5. Recargamos la lista
-  cargarClases();
+    // Recargamos la lista
+    cargarClases();
+  } else {
+    alert('Error al guardar la clase. Revisa la consola.');
+  }
 }
 
 // ---------- USUARIOS ----------
