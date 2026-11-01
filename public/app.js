@@ -75,7 +75,7 @@ function mostrar(id) {
   }
   if (id === 'inventario') cargarInventario();
  
-    if (id === 'clases') {
+  if (id === 'clases') {
     cargarClases();
     
     Promise.all([
@@ -85,31 +85,20 @@ function mostrar(id) {
       
       let opcionesHTML = '<option value="">Seleccione Alumno y Clase</option>';
 
-      // Agrupamos los pagos por jugador
-      const agrupados = {};
-      
+      // Recorremos TODOS los pagos. Cada pago es una clase/horario diferente
       pagos.forEach(pago => {
         const jugador = jugadores.find(j => j.id === pago.jugador_id);
         if (!jugador) return;
 
-        // El concepto ya viene con el horario (ej. "Entrenamiento Sub-15 (Lunes 16:00)")
-        const horario = pago.concepto.split('(')[1] ? `(${pago.concepto.split('(')[1]}` : '';
-
-        if (!agrupados[jugador.id]) {
-          agrupados[jugador.id] = {
-            nombre: jugador.nombre,
-            horarios: new Set()
-          };
+        // Extraemos el horario del concepto (ej. "Lunes 16:00")
+        let horario = "";
+        if (pago.concepto && pago.concepto.includes('(')) {
+          horario = pago.concepto.substring(pago.concepto.indexOf('('));
         }
-        // Agregamos el horario al Set (para que no se dupliquen si paga dos veces la misma clase)
-        if (horario) agrupados[jugador.id].horarios.add(horario);
-      });
 
-      // Construimos las opciones
-      for (const id in agrupados) {
-        const listaHorarios = Array.from(agrupados[id].horarios).join(' y ');
-        opcionesHTML += `<option value="${id}">${agrupados[id].nombre} ${listaHorarios}</option>`;
-      }
+        // Creamos una opción única para este pago
+        opcionesHTML += `<option value="${jugador.id}">${jugador.nombre} ${horario}</option>`;
+      });
 
       document.getElementById('eval_jugador').innerHTML = opcionesHTML;
     });
