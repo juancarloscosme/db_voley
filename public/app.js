@@ -73,19 +73,23 @@ function mostrar(id) {
     cargarSelectJugadores();
     cargarSelectConceptos();
   }
+  
   if (id === 'inventario') cargarInventario();
   
-  // AQUÍ ESTÁ EL CAMBIO PARA CLASES
+  // --- INICIO DE LA MAGIA PARA CLASES ---
   if (id === 'clases') {
     cargarClases();
-    // Llenar el select de alumnos para evaluar
+    
+    // Esto llena el select de alumnos para la evaluación
     fetch(`${API}/usuarios/jugadores`, { headers: headers() })
       .then(r => r.json())
       .then(jugadores => {
         document.getElementById('eval_jugador').innerHTML = '<option value="">Seleccione Alumno</option>' + 
           jugadores.map(j => `<option value="${j.id}">${j.nombre}</option>`).join('');
-      });
+      })
+      .catch(error => console.error("Error al cargar alumnos:", error));
   }
+  // --- FIN DE LA MAGIA ---
 
   if (id === 'usuarios') cargarUsuarios();
   
