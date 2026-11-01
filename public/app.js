@@ -1603,9 +1603,13 @@ async function registrarHijo() {
     alert('Error al crear al hijo: ' + data.error);
   } else {
     alert('✅ Hijo registrado y vinculado exitosamente.');
+    
+    // LIMPIAMOS LAS CAJAS DE TEXTO
     document.getElementById('fam_hijo_nombre').value = '';
     document.getElementById('fam_hijo_tel').value = '';
-    cargarFamiliaSeleccionada(); // Recargar la vista
+    
+    // RECARGAMOS EL DETALLE PARA QUE APAREZCA EL HIJO A LA DERECHA
+    cargarFamiliaSeleccionada(); 
   }
 }
 
@@ -1780,4 +1784,3 @@ async function descargarPDFFamilia() {
 
   ventana.document.write(html);
   ventana.document.close();
-}

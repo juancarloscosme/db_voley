@@ -136,4 +136,16 @@ router.post('/hijo', permitirRoles('admin', 'entrenador'), async (req, res) => {
   }
 });
 
+// Obtener los hijos de un apoderado específico
+router.get('/hijos/:tutor_id', permitirRoles('admin', 'entrenador', 'padre'), async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      'SELECT id, nombre_completo, telefono FROM jugadores WHERE tutor_id = ?',
+      [req.params.tutor_id]
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 module.exports = router;
