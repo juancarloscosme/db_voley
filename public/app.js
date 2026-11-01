@@ -1196,6 +1196,8 @@ async function cargarSelectJugadoresExpediente() {
 async function cargarExpediente() {
   const jugadorId = document.getElementById('exp_jugador').value;
   const claseId = document.getElementById('exp_clase').value;
+  const mesFiltro = document.getElementById('exp_mes').value;
+  const anioFiltro = document.getElementById('exp_anio').value;
 
   if (!jugadorId) {
     document.getElementById('contenido-expediente').classList.add('oculto');
@@ -1203,17 +1205,29 @@ async function cargarExpediente() {
   }
   document.getElementById('contenido-expediente').classList.remove('oculto');
 
-  // 1. Cargar Pagos (Los pagos no dependen de la clase, así que mostramos todos los del alumno)
+  // 1. Cargar Pagos (Filtrados por Mes y Año)
   const resPagos = await fetch(`${API}/pagos`, { headers: headers() });
   const pagos = await resPagos.json();
-  const pagosJugador = pagos.filter(p => p.jugador_id == jugadorId);
   
+  let pagosJugador = pagos.filter(p => p.jugador_id == jugadorId);
+  
+  // Filtro de tiempo para pagos
+  if (mesFiltro !== 'todos' || anioFiltro !== 'todos') {
+    pagosJugador = pagosJugador.filter(p => {
+      if (!p.fecha_inicio) return false;
+      const f = new Date(p.fecha_inicio);
+      const coincideMes = mesFiltro === 'todos' || f.getMonth() === parseInt(mesFiltro);
+      const coincideAnio = anioFiltro === 'todos' || f.getFullYear() === parseInt(anioFiltro);
+      return coincideMes && coincideAnio;
+    });
+  }
+
   let htmlPagos = '';
   let deudaTotal = 0;
   let hoy = new Date();
 
   if (pagosJugador.length === 0) {
-    htmlPagos = '<p>No hay registros de pagos.</p>';
+    htmlPagos = '<p>No hay pagos en este periodo.</p>';
   } else {
     htmlPagos = '<ul style="list-style: none; padding: 0;">';
     pagosJugador.forEach(p => {
@@ -1234,29 +1248,37 @@ async function cargarExpediente() {
     });
     htmlPagos += '</ul>';
   }
+  
   if (deudaTotal > 0) {
-    htmlPagos = `<div style="background: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin-bottom: 15px;"><strong>Deuda Total Pendiente: S/ ${deudaTotal.toFixed(2)}</strong></div>` + htmlPagos;
+    htmlPagos = `<div style="background: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin-bottom: 15px;"><strong>Deuda Total en este periodo: S/ ${deudaTotal.toFixed(2)}</strong></div>` + htmlPagos;
   }
   document.getElementById('exp_pagos').innerHTML = htmlPagos;
 
-  // 2. Cargar Asistencias (Filtradas por clase si se selecciona una)
+  // 2. Cargar Asistencias (Filtradas por Clase, Mes y Año)
   const resClases = await fetch(`${API}/clases`, { headers: headers() });
   let clases = await resClases.json();
   
-  // Si el usuario filtró por una clase, solo evaluamos esa. Si no, todas.
   if (claseId !== 'todas') {
     clases = clases.filter(c => c.id == claseId);
   }
 
   let totalAsistencias = 0;
   let totalFaltas = 0;
-
   const nombreJugador = document.getElementById('exp_jugador').options[document.getElementById('exp_jugador').selectedIndex].text;
 
   for (const c of clases) {
     const resAsis = await fetch(`${API}/clases/${c.id}/asistencia`, { headers: headers() });
     if (resAsis.ok) {
-      const asis = await resAsis.json();
+      let asis = await resAsis.json();
+      
+      // Filtro de fecha para asistencias
+      asis = asis.filter(a => {
+        const f = new Date(a.fecha);
+        const coincideMes = mesFiltro === 'todos' || f.getMonth() === parseInt(mesFiltro);
+        const coincideAnio = anioFiltro === 'todos' || f.getFullYear() === parseInt(anioFiltro);
+        return coincideMes && coincideAnio;
+      });
+
       asis.forEach(a => {
         if (a.jugador === nombreJugador) {
           if (a.presente === 1) totalAsistencias++;
@@ -1279,14 +1301,21 @@ async function cargarExpediente() {
     </div>
   `;
 
-  // 3. Cargar Evaluaciones Técnicas
-  // NOTA: Como la tabla evaluaciones no tiene un campo 'clase_id' directo en tu base de datos,
-  // mostramos todas las del alumno. Si en el futuro le agregas clase_id, aquí se filtra.
+  // 3. Cargar Evaluaciones Técnicas (Filtradas por Mes y Año)
   const resEval = await fetch(`${API}/evaluaciones/jugador/${jugadorId}`, { headers: headers() });
   if (resEval.ok) {
-    const evaluaciones = await resEval.json();
+    let evaluaciones = await resEval.json();
+    
+    // Filtro de fecha para evaluaciones
+    evaluaciones = evaluaciones.filter(ev => {
+      const f = new Date(ev.fecha);
+      const coincideMes = mesFiltro === 'todos' || f.getMonth() === parseInt(mesFiltro);
+      const coincideAnio = anioFiltro === 'todos' || f.getFullYear() === parseInt(anioFiltro);
+      return coincideMes && coincideAnio;
+    });
+
     if (evaluaciones.length === 0) {
-      document.getElementById('exp_evaluaciones').innerHTML = '<p>No hay evaluaciones registradas aún.</p>';
+      document.getElementById('exp_evaluaciones').innerHTML = '<p>No hay evaluaciones en este periodo.</p>';
     } else {
       let htmlEval = '<ul style="list-style: none; padding: 0;">';
       evaluaciones.forEach(ev => {

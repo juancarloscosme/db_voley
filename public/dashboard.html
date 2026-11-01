@@ -263,21 +263,52 @@
     <section id="expediente" class="seccion oculto">
       <h2>📋 Expediente del Alumno</h2>
       
-      <div style="margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ddd; display: flex; gap: 15px; flex-wrap: wrap;">
+      <div style="margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ddd; display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+        
         <div>
-          <label><strong>Seleccione un jugador: </strong></label>
-          <select id="exp_jugador" onchange="cargarExpediente()" style="width: 250px;">
+          <label><strong>Alumno: </strong></label> <br>
+          <select id="exp_jugador" onchange="cargarExpediente()" style="width: 200px;">
             <option value="">Cargando alumnos...</option>
           </select>
         </div>
         
         <div>
-          <label><strong>Filtrar por Clase: </strong></label>
-          <select id="exp_clase" onchange="cargarExpediente()" style="width: 250px;">
+          <label><strong>Clase: </strong></label> <br>
+          <select id="exp_clase" onchange="cargarExpediente()" style="width: 200px;">
             <option value="todas">Todas las clases</option>
-            <!-- Se llena con Javascript -->
           </select>
         </div>
+
+        <div>
+          <label><strong>Mes: </strong></label> <br>
+          <select id="exp_mes" onchange="cargarExpediente()" style="width: 150px;">
+            <option value="todos">Todos</option>
+            <option value="0">Enero</option>
+            <option value="1">Febrero</option>
+            <option value="2">Marzo</option>
+            <option value="3">Abril</option>
+            <option value="4">Mayo</option>
+            <option value="5">Junio</option>
+            <option value="6">Julio</option>
+            <option value="7">Agosto</option>
+            <option value="8">Septiembre</option>
+            <option value="9">Octubre</option>
+            <option value="10">Noviembre</option>
+            <option value="11">Diciembre</option>
+          </select>
+        </div>
+
+        <div>
+          <label><strong>Año: </strong></label> <br>
+          <select id="exp_anio" onchange="cargarExpediente()" style="width: 100px;">
+            <option value="todos">Todos</option>
+            <option value="2024">2024</option>
+            <option value="2025">2025</option>
+            <option value="2026" selected>2026</option>
+            <option value="2027">2027</option>
+          </select>
+        </div>
+
       </div>
 
       <div id="contenido-expediente" class="oculto">
