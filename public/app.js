@@ -74,10 +74,21 @@ function mostrar(id) {
     cargarSelectConceptos();
   }
   if (id === 'inventario') cargarInventario();
-  if (id === 'clases') cargarClases();
+  
+  // AQUÍ ESTÁ EL CAMBIO PARA CLASES
+  if (id === 'clases') {
+    cargarClases();
+    // Llenar el select de alumnos para evaluar
+    fetch(`${API}/usuarios/jugadores`, { headers: headers() })
+      .then(r => r.json())
+      .then(jugadores => {
+        document.getElementById('eval_jugador').innerHTML = '<option value="">Seleccione Alumno</option>' + 
+          jugadores.map(j => `<option value="${j.id}">${j.nombre}</option>`).join('');
+      });
+  }
+
   if (id === 'usuarios') cargarUsuarios();
   
-  // NUEVO: Cargar asistencias
   if (id === 'asistencias') {
     cargarSelectClasesAsistencia();
     cargarSelectJugadoresAsistencia();
@@ -87,7 +98,6 @@ function mostrar(id) {
   if (id === 'expediente') {
     cargarSelectJugadoresExpediente();
   }
-
 }
 
 function headers() {
@@ -535,30 +545,26 @@ async function cargarUsuarios() {
   const res = await fetch(`${API}/usuarios`, { headers: headers() });
   if (!res.ok) return;
   const data = await res.json();
-  
+
   document.getElementById('lista-usuarios').innerHTML = data.map(u => `
-    <div class="row">
-      <span>${u.nombre} - ${u.email} ${u.activo === 0 ? '<strong style="color:red">(Dado de baja)</strong>' : ''}</span>
-      <div style="display:flex; gap: 8px; align-items:center;">
+    <div class="row" style="flex-direction: column; align-items: flex-start; padding: 10px; border-bottom: 1px solid #eee;">
+      <div style="display:flex; justify-content:space-between; width:100%;">
+        <strong>${u.nombre}</strong>
         <span class="estado">${u.rol}</span>
-        
-        <!-- BOTÓN DE CONTRASEÑA -->
-        <button onclick="cambiarPassword(${u.id})" style="background: #9b59b6; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Cambiar contraseña">🔑</button>
-
+      </div>
+      <span style="font-size: 0.9em; color: #555;">
+        📧 ${u.email} | 📱 ${u.telefono || 'Sin teléfono'} | 📍 ${u.direccion || 'Sin dirección'}
+      </span>
+      <div style="margin-top: 5px;">
+        <!-- (Aquí van los botones de editar, clave y eliminar) -->
         ${u.rol !== 'admin' ? `
-          <button onclick="cambiarEstadoUsuario(${u.id}, ${u.activo})" 
-            style="background: ${u.activo === 1 ? '#f39c12' : '#2ecc71'}; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">
-            ${u.activo === 1 ? 'Dar de baja' : 'Reactivar'}
-          </button>
-
-          <button onclick="eliminarUsuario(${u.id})" 
-            style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">
-            ❌
-          </button>
+          <button onclick="cambiarPassword(${u.id})" style="background: #9b59b6; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">🔑</button>
+          <button onclick="eliminarUsuario(${u.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>
         ` : ''}
       </div>
     </div>
-  `).join('');
+  `).join('');  
+
 }
 
 async function crearUsuario() {
@@ -566,16 +572,18 @@ async function crearUsuario() {
   const email = document.getElementById('usr_email').value;
   const password = document.getElementById('usr_pass').value;
   const rol = document.getElementById('usr_rol').value;
+  const telefono = document.getElementById('usr_tel').value;
+  const direccion = document.getElementById('usr_dir').value;
 
-  if (!nombre || !email || !password) {
+  if (!nombre || !email || !password || !telefono || !direccion) {
     alert('Por favor, llena todos los campos');
     return;
   }
 
-  const res = await fetch(`${API}/auth/registro`, {
+ const res = await fetch(`${API}/auth/registro`, {
     method: 'POST',
     headers: headers(),
-    body: JSON.stringify({ nombre, email, password, rol })
+    body: JSON.stringify({ nombre, email, password, rol, telefono, direccion })
   });
 
   const data = await res.json();
@@ -1293,5 +1301,43 @@ async function cargarExpediente() {
       htmlEval += '</ul>';
       document.getElementById('exp_evaluaciones').innerHTML = htmlEval;
     }
+  }
+}
+
+async function crearEvaluacion() {
+  const jugador_id = document.getElementById('eval_jugador').value;
+  const fecha = document.getElementById('eval_fecha').value;
+  const saque = document.getElementById('eval_saque').value;
+  const recepcion = document.getElementById('eval_recepcion').value;
+  const ataque = document.getElementById('eval_ataque').value;
+  const bloqueo = document.getElementById('eval_bloqueo').value;
+  const defensa = document.getElementById('eval_defensa').value;
+  const comentario = document.getElementById('eval_comentario').value;
+
+  if (!jugador_id || !fecha) {
+    alert('Selecciona un alumno y una fecha');
+    return;
+  }
+
+  const res = await fetch(`${API}/evaluaciones`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({
+      jugador_id, fecha, saque, recepcion, ataque, bloqueo, defensa, comentario
+    })
+  });
+
+  if (res.ok) {
+    alert('Evaluación guardada correctamente');
+    // Limpiar campos
+    document.getElementById('eval_fecha').value = '';
+    document.getElementById('eval_saque').value = '';
+    document.getElementById('eval_recepcion').value = '';
+    document.getElementById('eval_ataque').value = '';
+    document.getElementById('eval_bloqueo').value = '';
+    document.getElementById('eval_defensa').value = '';
+    document.getElementById('eval_comentario').value = '';
+  } else {
+    alert('Error al guardar evaluación');
   }
 }

@@ -171,7 +171,23 @@
       <input id="cl_cancha" placeholder="Cancha">
       <button onclick="crearClase()">Crear</button>
       <div id="lista-clases"></div>
-    </section>
+
+      <!-- AQUÍ VA EL CÓDIGO DE EVALUACIÓN -->
+      <hr style="margin: 20px 0;">
+      <h3>📈 Registrar Evaluación Técnica</h3>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+      <select id="eval_jugador"><option value="">Seleccione Alumno</option></select>
+      <input type="date" id="eval_fecha">
+      <input type="number" id="eval_saque" placeholder="Saque (1-10)" min="1" max="10" style="width: 100px;">
+      <input type="number" id="eval_recepcion" placeholder="Recepción (1-10)" min="1" max="10" style="width: 100px;">
+      <input type="number" id="eval_ataque" placeholder="Ataque (1-10)" min="1" max="10" style="width: 100px;">
+      <input type="number" id="eval_bloqueo" placeholder="Bloqueo (1-10)" min="1" max="10" style="width: 100px;">
+      <input type="number" id="eval_defensa" placeholder="Defensa (1-10)" min="1" max="10" style="width: 100px;">
+      <input id="eval_comentario" placeholder="Comentario (Opcional)" style="flex: 1;">
+      <button onclick="crearEvaluacion()">Guardar Notas</button>
+      </div>
+
+   </section> <!-- CIERRE DE LA SECCIÓN DE CLASES -->
 
     <!-- SECCIÓN DE USUARIOS -->
     <section id="usuarios" class="seccion oculto">
@@ -181,8 +197,11 @@
       <input id="usr_nombre" placeholder="Nombre completo">
       <input id="usr_email" type="email" placeholder="Correo">
       <input id="usr_pass" type="password" placeholder="Contraseña">
+      <input id="usr_tel" placeholder="Número Móvil"> <!-- NUEVO -->
+      <input id="usr_dir" placeholder="Dirección"> <!-- NUEVO -->
       <select id="usr_rol">
         <option value="jugador">Jugador</option>
+        <option value="padre">Apoderado (Padre)</option> <!-- NUEVO -->
         <option value="entrenador">Entrenador</option>
         <option value="cajero">Cajero</option>
         <option value="admin">Administrador</option>
