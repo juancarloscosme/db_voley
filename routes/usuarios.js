@@ -91,4 +91,32 @@ router.put('/:id/password', permitirRoles('admin'), async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// Asignar un apoderado (padre) a un jugador
+router.put('/:id/tutor', permitirRoles('admin'), async (req, res) => {
+  try {
+    const { tutor_id } = req.body;
+    await pool.query('UPDATE jugadores SET tutor_id = ? WHERE id = ?', [tutor_id, req.params.id]);
+    res.json({ mensaje: 'Apoderado asignado correctamente' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Agregar en routes/usuarios.js
+router.put('/:id/editar', permitirRoles('admin'), async (req, res) => {
+  try {
+    const { nombre, email, telefono, direccion } = req.body;
+    await pool.query(
+      'UPDATE usuarios SET nombre = ?, email = ?, telefono = ?, direccion = ? WHERE id = ?',
+      [nombre, email, telefono, direccion, req.params.id]
+    );
+    res.json({ mensaje: 'Usuario actualizado' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+
 module.exports = router;

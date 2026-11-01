@@ -23,6 +23,7 @@
     <button id="btn-usuarios" class="oculto" onclick="mostrar('usuarios')">👥 Usuarios</button>
     <button onclick="mostrar('asistencias')">✅ Asistencias</button>
     <button onclick="mostrar('expediente')">📋 Expediente</button>
+   <button onclick="mostrar('familias')">👨‍👩‍👦 Familias</button>
   </nav>
 
   <main>
@@ -336,6 +337,31 @@
         </div>
       </div>
     </section>
+
+
+
+       <!-- SECCIÓN DE FAMILIAS -->
+    <section id="familias" class="seccion oculto">
+      <h2>👨‍👩‍👦 Registro de Familias (Apoderados y Alumnos)</h2>
+      
+      <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+        <!-- Formulario para vincular -->
+        <div style="flex: 1; min-width: 300px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ddd;">
+          <h3>Vincular Apoderado con Alumno</h3>
+          <label><strong>1. Seleccione al Apoderado:</strong></label><br>
+          <select id="fam_tutor" style="width: 100%; margin-bottom: 10px;">
+            <option value="">Cargando apoderados...</option>
+          </select>
+
+          <label><strong>2. Seleccione al Alumno (Jugador):</strong></label><br>
+          <select id="fam_jugador" style="width: 100%; margin-bottom: 10px;">
+            <option value="">Cargando alumnos...</option>
+          </select>
+
+          <button onclick="vincularFamilia()" style="background: #2980b9; color: white; border: none; padding: 10px; width: 100%; border-radius: 6px; cursor: pointer;">Vincular Familia</button>
+        </div>
+      </div>
+    </section> 
 
   </main>
 

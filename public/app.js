@@ -569,10 +569,11 @@ async function cargarUsuarios() {
       </span>
       <div style="margin-top: 5px;">
         <!-- (Aquí van los botones de editar, clave y eliminar) -->
-        ${u.rol !== 'admin' ? `
-          <button onclick="cambiarPassword(${u.id})" style="background: #9b59b6; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">🔑</button>
+           ${u.rol !== 'admin' ? `
+          <button onclick="editarUsuario(${u.id})" style="background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Editar datos">✏️</button>
+          <button onclick="cambiarPassword(${u.id})" style="background: #9b59b6; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Cambiar contraseña">🔑</button>
           <button onclick="eliminarUsuario(${u.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>
-        ` : ''}
+             ` : ''}
       </div>
     </div>
   `).join('');  
@@ -1535,5 +1536,75 @@ async function eliminarEvaluacion(id) {
     cargarExpediente(); 
   } else {
     alert('Error al eliminar la evaluación');
+  }
+}
+
+// ---------- FAMILIAS ----------
+async function cargarSelectFamilias() {
+  // Cargar Apoderados (rol 'padre')
+  const resPadres = await fetch(`${API}/usuarios`, { headers: headers() });
+  if (resPadres.ok) {
+    const usuarios = await resPadres.json();
+    const padres = usuarios.filter(u => u.rol === 'padre');
+    document.getElementById('fam_tutor').innerHTML = '<option value="">Seleccione Apoderado</option>' + 
+      padres.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
+  }
+
+  // Cargar Jugadores (rol 'jugador')
+  const resJugadores = await fetch(`${API}/usuarios/jugadores`, { headers: headers() });
+  if (resJugadores.ok) {
+    const jugadores = await resJugadores.json();
+    document.getElementById('fam_jugador').innerHTML = '<option value="">Seleccione Alumno</option>' + 
+      jugadores.map(j => `<option value="${j.id}">${j.nombre}</option>`).join('');
+  }
+}
+
+async function vincularFamilia() {
+  const tutor_id = document.getElementById('fam_tutor').value;
+  const jugador_id = document.getElementById('fam_jugador').value;
+
+  if (!tutor_id || !jugador_id) {
+    alert('Seleccione un apoderado y un alumno');
+    return;
+  }
+
+  const res = await fetch(`${API}/usuarios/${jugador_id}/tutor`, {
+    method: 'PUT',
+    headers: headers(),
+    body: JSON.stringify({ tutor_id: tutor_id })
+  });
+
+  if (res.ok) {
+    alert('✅ Apoderado vinculado al alumno correctamente.');
+  } else {
+    alert('Error al vincular.');
+  }
+}
+
+// Función para Editar Usuario (que me pediste en la captura)
+async function editarUsuario(id) {
+  const res = await fetch(`${API}/usuarios`, { headers: headers() });
+  const data = await res.json();
+  const u = data.find(user => user.id === id);
+  if (!u) return;
+
+  const nombre = prompt('Nuevo nombre:', u.nombre);
+  const email = prompt('Nuevo email:', u.email);
+  const telefono = prompt('Nuevo teléfono:', u.telefono || '');
+  const direccion = prompt('Nueva dirección:', u.direccion || '');
+
+  if (nombre === null) return;
+
+  // Nota: Para que esto funcione, debes crear la ruta PUT /:id/editar en routes/usuarios.js
+  const updateRes = await fetch(`${API}/usuarios/${id}/editar`, {
+    method: 'PUT',
+    headers: headers(),
+    body: JSON.stringify({ nombre, email, telefono, direccion })
+  });
+
+  if (updateRes.ok) {
+    cargarUsuarios();
+  } else {
+    alert('Error al editar');
   }
 }
