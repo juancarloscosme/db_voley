@@ -556,12 +556,23 @@ async function crearClase() {
 async function cargarUsuarios() {
   const res = await fetch(`${API}/usuarios`, { headers: headers() });
   if (!res.ok) return;
-  const data = await res.json();
+  let data = await res.json();
+
+  // Capturamos el texto del buscador
+  const busqueda = document.getElementById('buscar_usuario').value.toLowerCase();
+
+  // Filtramos los usuarios
+  if (busqueda) {
+    data = data.filter(u => 
+      u.nombre.toLowerCase().includes(busqueda) || 
+      u.email.toLowerCase().includes(busqueda)
+    );
+  }
 
   document.getElementById('lista-usuarios').innerHTML = data.map(u => `
     <div class="row" style="flex-direction: column; align-items: flex-start; padding: 10px; border-bottom: 1px solid #eee;">
       <div style="display:flex; justify-content:space-between; width:100%;">
-        <strong>${u.nombre} ${u.dni ? `(DNI: ${u.dni})` : ''}</strong> <!-- NUEVO -->
+        <strong>${u.nombre} ${u.dni ? `(Doc: ${u.dni})` : ''}</strong>
         <span class="estado">${u.rol}</span>
       </div>
       <span style="font-size: 0.9em; color: #555;">
@@ -576,7 +587,6 @@ async function cargarUsuarios() {
       </div>
     </div>
   `).join('');
-
 }
 
 async function crearUsuario() {
@@ -649,9 +659,9 @@ async function eliminarUsuario(id) {
   
   if (res.ok) {
     alert('Usuario eliminado');
-    cargarUsuarios();
+    cargarUsuarios(); // Recarga la lista y quita al usuario borrado
   } else {
-    alert('No se puede eliminar');
+    alert('No se puede eliminar. Puede tener registros asociados.');
   }
 }
 
