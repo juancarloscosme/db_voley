@@ -720,7 +720,12 @@ async function cargarSelectConceptos() {
     if (res.ok) {
       const clases = await res.json();
       const datalist = document.getElementById('lista-clases-concepto');
-      datalist.innerHTML = clases.map(c => `<option value="${c.nombre}">`).join('');
+      
+      // Agregamos el día y la hora al texto para que no se confundan
+      datalist.innerHTML = clases.map(c => {
+        const hora = c.hora_inicio ? c.hora_inicio.slice(0, 5) : '';
+        return `<option value="${c.nombre}">${c.nombre} (${c.dia_semana} ${hora})</option>`;
+      }).join('');
     }
   } catch (error) {
     console.error('Error al cargar clases para conceptos:', error);
