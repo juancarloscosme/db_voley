@@ -1714,3 +1714,36 @@ async function editarUsuario(id) {
     alert('Error al editar');
   }
 }
+
+async function forzarEliminarCorreo() {
+  const correo = prompt("Escribe el correo bloqueado para eliminarlo (ej: juancosme@bcp.com.pe):");
+  if (!correo) return;
+
+  const confirmar = confirm(`¿Estás seguro de eliminar a ${correo} de la base de datos?`);
+  if (!confirmar) return;
+
+  // Buscamos a TODOS los usuarios (activos e inactivos)
+  const res = await fetch(`${API}/usuarios`, { headers: headers() });
+  const data = await res.json();
+
+  // Buscamos el usuario que tenga ese correo exacto
+  const usuario = data.find(u => u.email.toLowerCase() === correo.toLowerCase());
+
+  if (!usuario) {
+    alert('No se encontró ningún usuario con ese correo.');
+    return;
+  }
+
+  // Lo eliminamos
+  const deleteRes = await fetch(`${API}/usuarios/${usuario.id}`, {
+    method: 'DELETE',
+    headers: headers()
+  });
+
+  if (deleteRes.ok) {
+    alert(`✅ Usuario ${correo} eliminado correctamente. Ya puedes crearlo de nuevo.`);
+    cargarUsuarios(); // Recargar la lista
+  } else {
+    alert('Error al eliminar. Es posible que el usuario tenga pagos o asistencias registradas (Fallo de clave foránea).');
+  }
+}
