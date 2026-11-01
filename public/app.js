@@ -528,10 +528,7 @@ async function editarClase(id) {
 
   const nombre = prompt('Nombre de la clase:', c.nombre);
   const categoria = prompt('Categoría:', c.categoria);
-  
-  // Mostramos los días actuales al usuario (él puede escribir si desea)
-  const dia = prompt('Días (separados por coma, ej. Lunes, Miércoles):', c.dia_semana);
-  
+  const dia = prompt('Días (L=Lunes, M=Martes, X=Miércoles, J=Jueves, V=Viernes, S=Sábado, D=Domingo):', c.dia_semana);
   const inicio = prompt('Hora Inicio (HH:MM):', c.hora_inicio ? c.hora_inicio.slice(0, 5) : '');
   const fin = prompt('Hora Fin (HH:MM):', c.hora_fin ? c.hora_fin.slice(0, 5) : '');
   const cancha = prompt('Cancha:', c.cancha);
@@ -558,8 +555,8 @@ async function crearClase() {
     return;
   }
 
-  // LA MAGIA ESTÁ AQUÍ: Cortamos el texto a 15 caracteres como máximo
-  const dia_semana = diasSeleccionados.join(', ').substring(0, 15); 
+  // Se unen las iniciales: "L, X, V"
+  const dia_semana = diasSeleccionados.join(', ');
 
   const nombre = document.getElementById('cl_nombre').value;
   const categoria = document.getElementById('cl_cat').value;
