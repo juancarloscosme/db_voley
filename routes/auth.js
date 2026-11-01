@@ -13,51 +13,34 @@ router.post('/registro', async (req, res) => {
       return res.status(400).json({ error: 'Faltan datos obligatorios' });
     }
 
-    // 1. Buscamos si el correo ya existe Y su estado
-    const [existe] = await pool.query('SELECT id, activo FROM usuarios WHERE email = ?', [email]);
-    
-    if (existe.length > 0) {
-      const usuarioExistente = existe[0];
-
-      // Si está ACTIVO, lanzamos el error normal
-      if (usuarioExistente.activo === 1) {
-        return res.status(400).json({ error: 'El email ya está registrado' });
-      } 
-      
-      // Si está DE BAJA, lo actualizamos y lo reactivamos
-      const hash = await bcrypt.hash(password, 10);
-      await pool.query(
-        `UPDATE usuarios 
-         SET nombre = ?, password_hash = ?, rol = ?, telefono = ?, direccion = ?, dni = ?, activo = 1 
-         WHERE id = ?`,
-        [nombre, hash, rol || 'jugador', telefono, direccion, dni, usuarioExistente.id]
-      );
-
-      // Si es jugador, nos aseguramos que tenga su perfil
-      if (rol === 'jugador') {
-        const [perfil] = await pool.query('SELECT id FROM jugadores WHERE usuario_id = ?', [usuarioExistente.id]);
-        if (perfil.length === 0) {
-          await pool.query(
-            `INSERT INTO jugadores (usuario_id, categoria, posicion, dorsal) VALUES (?, 'Sin categoría', 'Por definir', 0)`,
-            [usuarioExistente.id]
-          );
-        }
-      }
-      
-      return res.json({ mensaje: 'Usuario reactivado y actualizado' });
+    // 1. VALIDACIÓN: Buscamos si el email O el DNI ya existen
+    const [existeEmail] = await pool.query('SELECT id FROM usuarios WHERE email = ?', [email]);
+    if (existeEmail.length > 0) {
+      return res.status(400).json({ error: 'El correo ya está registrado con otro usuario.' });
     }
 
-    // 2. Si el correo no existe, lo creamos desde cero (código normal)
+    if (dni) {
+      const [existeDni] = await pool.query('SELECT id FROM usuarios WHERE dni = ?', [dni]);
+      if (existeDni.length > 0) {
+        return res.status(400).json({ error: 'El DNI/Documento ya está registrado con otro usuario.' });
+      }
+    }
+
+    // 2. Si pasa las validaciones, encriptamos y creamos al usuario
     const hash = await bcrypt.hash(password, 10);
+    const rolFinal = rol || 'padre'; // Por defecto será padre ahora
+
     const [result] = await pool.query(
       `INSERT INTO usuarios (nombre, email, password_hash, rol, telefono, direccion, dni) 
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [nombre, email, hash, rol || 'jugador', telefono, direccion, dni]
+      [nombre, email, hash, rolFinal, telefono || null, direccion || null, dni || null]
     );
 
-    if (rol === 'jugador') {
+    // Si es jugador (aunque ahora se crean desde Familias, mantenemos la lógica por si acaso)
+    if (rolFinal === 'jugador') {
       await pool.query(
-        `INSERT INTO jugadores (usuario_id, categoria, posicion, dorsal) VALUES (?, 'Sin categoría', 'Por definir', 0)`,
+        `INSERT INTO jugadores (usuario_id, categoria, posicion, dorsal) 
+         VALUES (?, 'Sin categoría', 'Por definir', 0)`,
         [result.insertId]
       );
     }
