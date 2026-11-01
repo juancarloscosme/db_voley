@@ -75,14 +75,28 @@ function mostrar(id) {
   }
   if (id === 'inventario') cargarInventario();
   
-  if (id === 'clases') {
+    if (id === 'clases') {
     cargarClases();
-    fetch(`${API}/usuarios/jugadores`, { headers: headers() })
-      .then(r => r.json())
-      .then(jugadores => {
+    
+    // 1. Buscamos a todos los jugadores y a todos los pagos
+    Promise.all([
+      fetch(`${API}/usuarios/jugadores`, { headers: headers() }).then(r => r.json()),
+      fetch(`${API}/pagos`, { headers: headers() }).then(r => r.json())
+    ]).then(([jugadores, pagos]) => {
+      
+      // 2. Filtramos solo a los jugadores que tienen un registro en pagos
+      const idsJugadoresConPago = [...new Set(pagos.map(p => p.jugador_id))];
+      
+      const jugadoresHabilitados = jugadores.filter(j => idsJugadoresConPago.includes(j.id));
+
+      // 3. Llenamos el select con los habilitados
+      if (jugadoresHabilitados.length === 0) {
+        document.getElementById('eval_jugador').innerHTML = '<option value="">Ningún alumno tiene pagos registrados aún</option>';
+      } else {
         document.getElementById('eval_jugador').innerHTML = '<option value="">Seleccione Alumno</option>' + 
-          jugadores.map(j => `<option value="${j.id}">${j.nombre}</option>`).join('');
-      });
+          jugadoresHabilitados.map(j => `<option value="${j.id}">${j.nombre}</option>`).join('');
+      }
+    });
   }
 
   if (id === 'usuarios') cargarUsuarios();
