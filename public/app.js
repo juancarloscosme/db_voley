@@ -558,10 +558,10 @@ async function cargarUsuarios() {
   if (!res.ok) return;
   let data = await res.json();
 
-  // Capturamos el texto del buscador
   const busqueda = document.getElementById('buscar_usuario').value.toLowerCase();
+  const mostrarBajas = document.getElementById('chk_bajas').checked;
 
-  // Filtramos los usuarios
+  // 1. Filtrar por texto
   if (busqueda) {
     data = data.filter(u => 
       u.nombre.toLowerCase().includes(busqueda) || 
@@ -569,10 +569,16 @@ async function cargarUsuarios() {
     );
   }
 
+  // 2. Filtrar por estado (activo/inactivo) si el checkbox no está marcado
+  if (!mostrarBajas) {
+    data = data.filter(u => u.activo === 1 || u.rol === 'admin'); 
+    // Dejamos al admin siempre visible para que no te elimines a ti mismo
+  }
+
   document.getElementById('lista-usuarios').innerHTML = data.map(u => `
-    <div class="row" style="flex-direction: column; align-items: flex-start; padding: 10px; border-bottom: 1px solid #eee;">
+    <div class="row" style="flex-direction: column; align-items: flex-start; padding: 10px; border-bottom: 1px solid #eee; opacity: ${u.activo === 0 ? '0.6' : '1'};">
       <div style="display:flex; justify-content:space-between; width:100%;">
-        <strong>${u.nombre} ${u.dni ? `(Doc: ${u.dni})` : ''}</strong>
+        <strong>${u.nombre} ${u.dni ? `(Doc: ${u.dni})` : ''} ${u.activo === 0 ? '<span style="color:red; font-size:0.8em;">[DE BAJA]</span>' : ''}</strong>
         <span class="estado">${u.rol}</span>
       </div>
       <span style="font-size: 0.9em; color: #555;">
@@ -581,7 +587,12 @@ async function cargarUsuarios() {
       <div style="margin-top: 5px;">
         ${u.rol !== 'admin' ? `
           <button onclick="editarUsuario(${u.id})" style="background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">✏️</button>
-          <button onclick="cambiarPassword(${u.id})" style="background: #9b59b6; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">🔑</button>
+          
+          ${u.activo === 1 
+            ? `<button onclick="cambiarEstadoUsuario(${u.id}, 1)" style="background: #f39c12; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Dar de baja">Baja</button>` 
+            : `<button onclick="cambiarEstadoUsuario(${u.id}, 0)" style="background: #2ecc71; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Reactivar">Reactivar</button>`
+          }
+          
           <button onclick="eliminarUsuario(${u.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>
         ` : ''}
       </div>
