@@ -30,7 +30,6 @@
     <section id="pagos" class="seccion">
       <h2>💰 Control de Ingresos</h2>
       
-      <!-- BARRA DE HERRAMIENTAS -->
       <div style="display: flex; gap: 10px; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #ddd; flex-wrap: wrap;">
         <input type="text" id="buscar_pago" placeholder="🔍 Buscar por jugador o concepto..." oninput="cargarPagos()" style="flex: 1; margin: 0; min-width: 200px;">
         
@@ -71,14 +70,12 @@
         </button>
       </div>
 
-      <!-- BOTÓN PARA VER GRÁFICOS -->
       <div style="margin-bottom: 20px;">
         <button onclick="mostrarGraficos()" style="background: #8e44ad; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer;">
           📈 Ver Dashboard de Métricas
         </button>
       </div>
 
-      <!-- CONTENEDOR DEL GRÁFICO (Oculto por defecto) -->
       <div id="contenedor-graficos" class="oculto" style="background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ddd;">
         <h3>Estadísticas Visuales</h3>
         <canvas id="miGrafico" height="80"></canvas>
@@ -91,7 +88,6 @@
         <option value="">Cargando jugadores...</option>
       </select>
       
-      <!-- CAMPO CON SUGERENCIAS DE CLASES -->
       <input list="lista-clases-concepto" id="pago_concepto" placeholder="Concepto (o elige una clase)">
       <datalist id="lista-clases-concepto"></datalist>
 
@@ -109,13 +105,12 @@
 
       <button onclick="crearPago()">Registrar</button>
       <div id="lista-pagos"></div>
-    </section> <!-- ¡AQUÍ FALTABA CERRAR LA SECCIÓN DE PAGOS! -->
+    </section>
     
     <!-- SECCIÓN DE INVENTARIO -->
     <section id="inventario" class="seccion oculto">
       <h2>📦 Inventario</h2>
       
-      <!-- BARRA DE FILTROS Y REPORTES -->
       <div style="display: flex; gap: 10px; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #ddd; flex-wrap: wrap;">
         <input type="text" id="buscar_inv" placeholder="🔍 Buscar item..." oninput="cargarInventario()" style="flex: 1; margin: 0;">
         
@@ -142,7 +137,6 @@
       <input id="inv_cat" placeholder="Categoría">
       <input id="inv_cant" type="number" placeholder="Cantidad">
       
-      <!-- NUEVOS CAMPOS -->
       <input id="inv_proveedor" placeholder="Proveedor / Donante">
       <input id="inv_fecha_ingreso" type="date" title="Fecha de ingreso">
       
@@ -153,7 +147,6 @@
       </select>
       <input id="inv_vida" type="number" placeholder="Vida útil (meses)">
       
-      <!-- BOTONES DINÁMICOS PARA CREAR/EDITAR -->
       <button id="btn-guardar-item" onclick="guardarItem()">Agregar</button>
       <button id="btn-cancelar-item" class="oculto" onclick="cancelarEdicionItem()" style="background: #95a5a6; color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer;">Cancelar</button>
       
@@ -172,7 +165,6 @@
       <button onclick="crearClase()">Crear</button>
       <div id="lista-clases"></div>
 
-      <!-- AQUÍ VA EL CÓDIGO DE EVALUACIÓN -->
       <hr style="margin: 20px 0;">
       <h3>📈 Registrar Evaluación Técnica</h3>
       <div style="display: flex; gap: 10px; flex-wrap: wrap;">
@@ -186,8 +178,7 @@
       <input id="eval_comentario" placeholder="Comentario (Opcional)" style="flex: 1;">
       <button onclick="crearEvaluacion()">Guardar Notas</button>
       </div>
-
-   </section> <!-- CIERRE DE LA SECCIÓN DE CLASES -->
+   </section>
 
     <!-- SECCIÓN DE USUARIOS -->
     <section id="usuarios" class="seccion oculto">
@@ -219,7 +210,6 @@
       <h2>✅ Control de Asistencias</h2>
       
       <!-- FILTROS -->
-      <!-- FILTROS -->
       <div style="display: flex; gap: 10px; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #ddd; flex-wrap: wrap;">
         <select id="asis_clase" onchange="cargarAsistencias()" style="margin: 0;">
           <option value="">Seleccione una clase</option>
@@ -241,39 +231,33 @@
           <option value="11">Diciembre</option>
         </select>
 
-        <!-- NUEVO FILTRO DE ESTADO -->
         <select id="asis_filtro_estado" onchange="cargarAsistencias()" style="margin: 0;">
           <option value="todos">Todos (Presentes y Faltas)</option>
           <option value="1">Solo Presentes</option>
           <option value="0">Solo Faltas</option>
         </select>
 
-        <!-- NUEVO BOTÓN DE PDF -->
         <button onclick="descargarPDFAsistencias()" style="background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer;">
           📄 Reporte PDF
         </button>
       </div>
 
-      <!-- NUEVO RESUMEN (Se llenará con JS) -->
       <div id="resumen-asistencias" style="margin-bottom: 20px; font-weight: bold; color: #1f4e79;"></div>
 
-      <!-- FORMULARIO PARA MARCAR ASISTENCIA -->
-      <h3>Registrar Asistencia</h3>
-      <input type="date" id="asis_fecha" style="width: 150px;">
-      <select id="asis_jugador">
-        <option value="">Seleccione un jugador</option>
-      </select>
-      <select id="asis_estado">
-        <option value="1">Presente</option>
-        <option value="0">Falta</option>
-      </select>
-      <button onclick="marcarAsistencia()">Guardar Asistencia</button>
+      <!-- ASISTENCIA RÁPIDA DEL DÍA -->
+      <h3>Pasar lista del día</h3>
+      <div style="background: #f8f9fa; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ddd;">
+        <label><strong>Fecha: </strong></label>
+        <input type="date" id="asis_fecha_rapida" style="width: 150px; margin-right: 20px;">
+        <button onclick="cargarListaAlumnos()" style="background: #3498db; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer;">Cargar Alumnos de la Clase</button>
+      </div>
 
-      <!-- LISTA DE ASISTENCIAS -->
-      <h3>Historial de la clase</h3>
+      <div id="lista-alumnos-asistencia"></div>
+
+      <!-- LISTA DE ASISTENCIAS HISTÓRICA -->
+      <h3 style="margin-top: 30px;">Historial de la clase</h3>
       <div id="lista-asistencias"></div>
     </section>
-
 
     <!-- SECCIÓN DE EXPEDIENTE -->
     <section id="expediente" class="seccion oculto">
@@ -289,7 +273,6 @@
       <div id="contenido-expediente" class="oculto">
         <div style="display: flex; gap: 20px; flex-wrap: wrap;">
           
-          <!-- COLUMNA IZQUIERDA: PAGOS Y ASISTENCIA -->
           <div style="flex: 1; min-width: 300px;">
             <div style="background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px;">
               <h3>💰 Estado de Cuenta</h3>
@@ -302,7 +285,6 @@
             </div>
           </div>
 
-          <!-- COLUMNA DERECHA: EVALUACIONES -->
           <div style="flex: 1; min-width: 300px;">
             <div style="background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
               <h3>📈 Avance Técnico (Últimas Evaluaciones)</h3>
@@ -313,7 +295,6 @@
         </div>
       </div>
     </section>
-
 
   </main>
 

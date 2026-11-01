@@ -97,6 +97,13 @@ function mostrar(id) {
     cargarSelectClasesAsistencia();
     cargarSelectJugadoresAsistencia();
     cargarAsistencias();
+
+    // Poner fecha de hoy por defecto
+    const hoy = new Date().toISOString().split('T')[0];
+    if (document.getElementById('asis_fecha_rapida')) {
+      document.getElementById('asis_fecha_rapida').value = hoy;
+    }
+
   }
 
   if (id === 'expediente') {
@@ -1343,5 +1350,73 @@ async function crearEvaluacion() {
     document.getElementById('eval_comentario').value = '';
   } else {
     alert('Error al guardar evaluación');
+  }
+}
+
+// Función para dibujar la lista de todos los alumnos de la clase seleccionada
+async function cargarListaAlumnos() {
+  const claseId = document.getElementById('asis_clase').value;
+  const fecha = document.getElementById('asis_fecha_rapida').value;
+
+  if (!claseId || !fecha) {
+    alert('Por favor, selecciona una clase y una fecha primero.');
+    return;
+  }
+
+  // Obtenemos todos los jugadores
+  const res = await fetch(`${API}/usuarios/jugadores`, { headers: headers() });
+  const jugadores = await res.json();
+
+  // Obtenemos las asistencias ya guardadas de esta clase en esta fecha
+  const resAsis = await fetch(`${API}/clases/${claseId}/asistencia`, { headers: headers() });
+  const asistenciasGuardadas = await resAsis.json();
+
+  let html = '';
+  jugadores.forEach(j => {
+    // Verificamos si este jugador ya tiene asistencia marcada en esta fecha
+    const registro = asistenciasGuardadas.find(a => 
+      a.jugador === j.nombre && a.fecha.startsWith(fecha)
+    );
+    
+    let estadoActual = '';
+    if (registro) {
+      estadoActual = registro.presente ? '✅ Presente' : '❌ Falta';
+    } else {
+      estadoActual = '⏳ Sin registrar';
+    }
+
+    html += `
+      <div class="row" style="padding: 10px; border-bottom: 1px solid #eee;">
+        <span><strong>${j.nombre}</strong> - <em>${estadoActual}</em></span>
+        <div style="display:flex; gap: 5px;">
+          <button onclick="guardarAsistenciaRapida(${claseId}, ${j.id}, '${fecha}', 1)" style="background: #2ecc71; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Presente</button>
+          <button onclick="guardarAsistenciaRapida(${claseId}, ${j.id}, '${fecha}', 0)" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Falta</button>
+        </div>
+      </div>
+    `;
+  });
+
+  document.getElementById('lista-alumnos-asistencia').innerHTML = html;
+}
+
+// Función para guardar un solo clic
+async function guardarAsistenciaRapida(claseId, jugadorId, fecha, presente) {
+  const res = await fetch(`${API}/clases/${claseId}/asistencia`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({
+      jugador_id: jugadorId,
+      fecha: fecha, // Enviamos la fecha explícitamente
+      presente: presente,
+      observacion: 'Asistencia rápida'
+    })
+  });
+
+  if (res.ok) {
+    // Recargamos la lista y el historial para que se vea el cambio
+    cargarListaAlumnos();
+    cargarAsistencias();
+  } else {
+    alert('Error al guardar. Verifica si la fecha es correcta.');
   }
 }

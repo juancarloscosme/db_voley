@@ -38,11 +38,15 @@ router.post('/', permitirRoles('admin', 'entrenador'), async (req, res) => {
 // Registrar asistencia
 router.post('/:clase_id/asistencia', permitirRoles('admin', 'entrenador'), async (req, res) => {
   try {
-    const { jugador_id, presente, observacion } = req.body;
+    const { jugador_id, presente, observacion, fecha } = req.body;
+    
+    // Si no viene fecha, usa la de hoy
+    const fechaFinal = fecha ? fecha : new Date().toISOString().split('T')[0];
+
     const [result] = await pool.query(
       `INSERT INTO asistencias (clase_id, jugador_id, fecha, presente, observacion)
-       VALUES (?, ?, CURRENT_DATE, ?, ?)`,
-      [req.params.clase_id, jugador_id, presente, observacion]
+       VALUES (?, ?, ?, ?, ?)`,
+      [req.params.clase_id, jugador_id, fechaFinal, presente, observacion]
     );
     const [rows] = await pool.query('SELECT * FROM asistencias WHERE id = ?', [result.insertId]);
     res.json(rows[0]);
