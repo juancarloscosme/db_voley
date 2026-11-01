@@ -7,8 +7,9 @@ router.use(verificarToken);
 // Listar usuarios (solo admin)
 router.get('/', permitirRoles('admin'), async (req, res) => {
   try {
+    // ELIMINAMOS EL "WHERE activo = 1" PARA QUE TRAIGA A TODOS
     const [rows] = await pool.query(
-      'SELECT id, nombre, email, rol, activo, telefono, direccion, dni FROM usuarios ORDER BY id' 
+      'SELECT id, nombre, email, rol, activo, telefono, direccion, dni FROM usuarios ORDER BY id'
     );
     res.json(rows);
   } catch (err) {
