@@ -553,7 +553,6 @@ async function cargarUsuarios() {
   const busqueda = document.getElementById('buscar_usuario').value.toLowerCase();
   const mostrarBajas = document.getElementById('chk_bajas').checked;
 
-  // 1. Filtrar por texto
   if (busqueda) {
     data = data.filter(u => 
       u.nombre.toLowerCase().includes(busqueda) || 
@@ -561,10 +560,8 @@ async function cargarUsuarios() {
     );
   }
 
-  // 2. Filtrar por estado (activo/inactivo) si el checkbox no está marcado
   if (!mostrarBajas) {
     data = data.filter(u => u.activo === 1 || u.rol === 'admin'); 
-    // Dejamos al admin siempre visible para que no te elimines a ti mismo
   }
 
   document.getElementById('lista-usuarios').innerHTML = data.map(u => `
@@ -594,7 +591,7 @@ async function cargarUsuarios() {
 
 async function crearUsuario() {
   const nombre = document.getElementById('usr_nombre').value;
-  const dni = document.getElementById('usr_dni').value; // <-- NUEVO
+  const dni = document.getElementById('usr_dni').value;
   const email = document.getElementById('usr_email').value;
   const password = document.getElementById('usr_pass').value;
   const rol = document.getElementById('usr_rol').value;
@@ -602,10 +599,11 @@ async function crearUsuario() {
   const direccion = document.getElementById('usr_dir').value;
 
   if (!nombre || !email || !password || !direccion || !dni) {
-    alert('Por favor, llena todos los campos obligatorios (incluyendo DNI)');
+    alert('Por favor, llena todos los campos obligatorios.');
     return;
   }
 
+  // Validación estricta del teléfono
   if (telefono.length !== 9) {
     alert('⚠️ El número móvil debe tener exactamente 9 dígitos.');
     return;
@@ -624,15 +622,14 @@ async function crearUsuario() {
   } else {
     alert('Usuario creado exitosamente');
     
-    // Limpiar TODAS las cajas
     document.getElementById('usr_nombre').value = '';
-    document.getElementById('usr_dni').value = ''; // <-- NUEVO
+    document.getElementById('usr_dni').value = '';
     document.getElementById('usr_email').value = '';
     document.getElementById('usr_pass').value = '';
     document.getElementById('usr_tel').value = '';
     document.getElementById('usr_dir').value = '';
     
-    document.getElementById('usr_rol').value = 'jugador';
+    document.getElementById('usr_rol').value = 'padre'; // Vuelve a apoderado por defecto
     cargarUsuarios();
   }
 }

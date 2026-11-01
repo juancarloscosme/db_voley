@@ -136,3 +136,4 @@ ALTER TABLE usuarios ADD COLUMN dni VARCHAR(15) DEFAULT NULL;
 ALTER TABLE jugadores ADD COLUMN nombre_completo VARCHAR(100) DEFAULT NULL;
 ALTER TABLE jugadores ADD COLUMN telefono VARCHAR(20) DEFAULT NULL;
 ALTER TABLE jugadores MODIFY usuario_id INT NULL;
+ALTER TABLE usuarios MODIFY rol ENUM('admin', 'entrenador', 'jugador', 'padre', 'cajero', 'directivo', 'voluntario');

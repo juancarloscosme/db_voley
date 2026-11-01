@@ -196,14 +196,18 @@
       <input id="usr_dni" placeholder="DNI / Documento"> <!-- NUEVO -->
       <input id="usr_email" type="email" placeholder="Correo">
       <input id="usr_pass" type="password" placeholder="Contraseña">
-      <input id="usr_tel" placeholder="Número Móvil">
-      <input id="usr_dir" placeholder="Dirección">
+      <!-- Validación del teléfono en el HTML -->
+      <input id="usr_tel" type="tel" placeholder="Número Móvil (9 dígitos)" maxlength="9" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 9)">
+            <input id="usr_dir" placeholder="Dirección">
+      
       <select id="usr_rol">
-        <option value="jugador">Jugador</option>
-        <option value="padre">Apoderado (Padre)</option> <!-- NUEVO -->
+        <option value="padre">Apoderado (Padre)</option>
         <option value="entrenador">Entrenador</option>
         <option value="cajero">Cajero</option>
         <option value="admin">Administrador</option>
+        <!-- NUEVOS ROLES -->
+        <option value="directivo">Directivo / Gerente</option>
+        <option value="voluntario">Voluntario / Staff</option>
       </select>
       <button onclick="crearUsuario()">Crear Usuario</button>
       
