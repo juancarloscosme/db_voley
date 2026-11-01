@@ -1046,10 +1046,16 @@ async function cargarAsistencias() {
     const estadoHtml = a.presente 
       ? '<span style="color: #2ecc71; font-weight:bold;">✅ Presente</span>' 
       : '<span style="color: #e74c3c; font-weight:bold;">❌ Falta</span>';
+      
     return `
     <div class="row">
       <span><strong>${a.fecha.split('T')[0]}</strong> - ${a.jugador}</span>
-      <div>${estadoHtml}</div>
+      <div style="display:flex; gap: 10px; align-items:center;">
+        ${estadoHtml}
+        <!-- BOTONES NUEVOS -->
+        <button onclick="editarAsistencia(${a.id}, ${a.presente})" style="background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Cambiar estado">✏️</button>
+        <button onclick="eliminarAsistencia(${a.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Eliminar registro">❌</button>
+      </div>
     </div>`;
   }).join('');
 }
@@ -1475,5 +1481,38 @@ async function cargarSelectClasesExpediente() {
     const select = document.getElementById('exp_clase');
     select.innerHTML = '<option value="todas">Todas las clases</option>' + 
       clases.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+  }
+}
+
+// Función para eliminar la asistencia
+async function eliminarAsistencia(id) {
+  if (!confirm('¿Estás seguro de eliminar este registro de asistencia?')) return;
+
+  const res = await fetch(`${API}/clases/asistencia/${id}`, {
+    method: 'DELETE',
+    headers: headers()
+  });
+
+  if (res.ok) {
+    cargarAsistencias(); // Recargar historial
+  } else {
+    alert('Error al eliminar la asistencia');
+  }
+}
+
+// Función para editar (cambiar de presente a falta)
+async function editarAsistencia(id, estadoActual) {
+  const nuevoEstado = estadoActual === 1 ? 0 : 1; // Si era 1 pasa a 0, si era 0 pasa a 1
+  
+  const res = await fetch(`${API}/clases/asistencia/${id}`, {
+    method: 'PUT',
+    headers: headers(),
+    body: JSON.stringify({ presente: nuevoEstado })
+  });
+
+  if (res.ok) {
+    cargarAsistencias(); // Recargar historial
+  } else {
+    alert('Error al actualizar la asistencia');
   }
 }

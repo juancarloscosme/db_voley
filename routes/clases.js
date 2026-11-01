@@ -96,4 +96,25 @@ router.put('/:id', permitirRoles('admin', 'entrenador'), async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// Eliminar una asistencia
+router.delete('/asistencia/:id', permitirRoles('admin', 'entrenador'), async (req, res) => {
+  try {
+    await pool.query('DELETE FROM asistencias WHERE id = ?', [req.params.id]);
+    res.json({ mensaje: 'Asistencia eliminada' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Editar una asistencia (cambiar Presente a Falta o viceversa)
+router.put('/asistencia/:id', permitirRoles('admin', 'entrenador'), async (req, res) => {
+  try {
+    const { presente } = req.body;
+    await pool.query('UPDATE asistencias SET presente = ? WHERE id = ?', [presente, req.params.id]);
+    res.json({ mensaje: 'Asistencia actualizada' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 module.exports = router;
