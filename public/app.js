@@ -83,6 +83,11 @@ function mostrar(id) {
     cargarSelectJugadoresAsistencia();
     cargarAsistencias();
   }
+
+  if (id === 'expediente') {
+    cargarSelectJugadoresExpediente();
+  }
+
 }
 
 function headers() {
@@ -1155,4 +1160,138 @@ async function descargarPDFAsistencias() {
 
   ventana.document.write(html);
   ventana.document.close();
+}
+
+// ---------- EXPEDIENTE DEL ALUMNO ----------
+async function cargarSelectJugadoresExpediente() {
+  const res = await fetch(`${API}/usuarios/jugadores`, { headers: headers() });
+  if (res.ok) {
+    const jugadores = await res.json();
+    const select = document.getElementById('exp_jugador');
+    select.innerHTML = '<option value="">Seleccione un alumno</option>' + 
+      jugadores.map(j => `<option value="${j.id}">${j.nombre}</option>`).join('');
+  }
+}
+
+async function cargarExpediente() {
+  const jugadorId = document.getElementById('exp_jugador').value;
+  if (!jugadorId) {
+    document.getElementById('contenido-expediente').classList.add('oculto');
+    return;
+  }
+  document.getElementById('contenido-expediente').classList.remove('oculto');
+
+  // 1. Cargar Pagos
+  const resPagos = await fetch(`${API}/pagos`, { headers: headers() });
+  const pagos = await resPagos.json();
+  // Filtramos los pagos que pertenecen a este jugador
+  const pagosJugador = pagos.filter(p => p.jugador_id == jugadorId);
+  
+  let htmlPagos = '';
+  let deudaTotal = 0;
+  let hoy = new Date();
+
+  if (pagosJugador.length === 0) {
+    htmlPagos = '<p>No hay registros de pagos.</p>';
+  } else {
+    htmlPagos = '<ul style="list-style: none; padding: 0;">';
+    pagosJugador.forEach(p => {
+      // Si está pendiente y la fecha de vencimiento ya pasó, calculamos mora
+      let estadoHtml = '';
+      if (p.estado === 'pendiente') {
+        deudaTotal += parseFloat(p.monto);
+        const fechaVenc = new Date(p.fecha_vencimiento);
+        if (fechaVenc < hoy) {
+          const diasMora = Math.floor((hoy - fechaVenc) / (1000 * 60 * 60 * 24));
+          estadoHtml = `<span style="color: #e74c3c; font-weight: bold;">⚠️ Vencido hace ${diasMora} días</span>`;
+        } else {
+          estadoHtml = `<span style="color: #f39c12; font-weight: bold;">⏳ Pendiente (Vence: ${p.fecha_vencimiento.split('T')[0]})</span>`;
+        }
+      } else if (p.estado === 'pagado') {
+        estadoHtml = `<span style="color: #2ecc71; font-weight: bold;">✅ Pagado</span>`;
+      }
+
+      htmlPagos += `
+        <li style="margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;">
+          <strong>${p.concepto}</strong> - S/ ${p.monto} <br>
+          ${estadoHtml}
+        </li>
+      `;
+    });
+    htmlPagos += '</ul>';
+  }
+
+  if (deudaTotal > 0) {
+    htmlPagos = `<div style="background: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+      <strong>Deuda Total Pendiente: S/ ${deudaTotal.toFixed(2)}</strong>
+    </div>` + htmlPagos;
+  }
+  document.getElementById('exp_pagos').innerHTML = htmlPagos;
+
+  // 2. Cargar Asistencias (Resumen Global)
+  const resClases = await fetch(`${API}/clases`, { headers: headers() });
+  const clases = await resClases.json();
+  
+  let totalAsistencias = 0;
+  let totalFaltas = 0;
+
+  // Recorremos todas las clases para buscar las asistencias de este jugador
+  for (const c of clases) {
+    const resAsis = await fetch(`${API}/clases/${c.id}/asistencia`, { headers: headers() });
+    if (resAsis.ok) {
+      const asis = await resAsis.json();
+      // Filtramos por el ID del jugador (el backend nos devuelve el nombre, 
+      // así que comparamos el nombre para simplificar o asumimos que el backend envía el ID)
+      // Para evitar problemas, comparamos por nombre (idealmente el backend debería enviar jugador_id)
+      const nombreJugador = document.getElementById('exp_jugador').options[document.getElementById('exp_jugador').selectedIndex].text;
+      
+      asis.forEach(a => {
+        if (a.jugador === nombreJugador) {
+          if (a.presente === 1) totalAsistencias++;
+          else totalFaltas++;
+        }
+      });
+    }
+  }
+
+  document.getElementById('exp_asistencia').innerHTML = `
+    <div style="display: flex; gap: 15px;">
+      <div style="background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; text-align: center; flex: 1;">
+        <h4 style="margin: 0;">Presente</h4>
+        <h2 style="margin: 10px 0 0 0;">${totalAsistencias}</h2>
+      </div>
+      <div style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; text-align: center; flex: 1;">
+        <h4 style="margin: 0;">Faltas</h4>
+        <h2 style="margin: 10px 0 0 0;">${totalFaltas}</h2>
+      </div>
+    </div>
+  `;
+
+  // 3. Cargar Evaluaciones Técnicas
+  const resEval = await fetch(`${API}/evaluaciones/jugador/${jugadorId}`, { headers: headers() });
+  if (resEval.ok) {
+    const evaluaciones = await resEval.json();
+    if (evaluaciones.length === 0) {
+      document.getElementById('exp_evaluaciones').innerHTML = '<p>No hay evaluaciones registradas aún.</p>';
+    } else {
+      let htmlEval = '<ul style="list-style: none; padding: 0;">';
+      evaluaciones.forEach(ev => {
+        htmlEval += `
+          <li style="margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+            <strong>Fecha:</strong> ${ev.fecha.split('T')[0]} <br>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 5px;">
+              <span>Saque: ${ev.saque || '-'}/10</span>
+              <span>Recepción: ${ev.recepcion || '-'}/10</span>
+              <span>Ataque: ${ev.ataque || '-'}/10</span>
+              <span>Bloqueo: ${ev.bloqueo || '-'}/10</span>
+              <span>Defensa: ${ev.defensa || '-'}/10</span>
+            </div>
+            <span style="font-size: 0.9em; color: #666;"><em>${ev.comentario || ''}</em></span>
+          </li>
+        `;
+      });
+      htmlEval += '</ul>';
+      document.getElementById('exp_evaluaciones').innerHTML = htmlEval;
+    }
+  }
 }

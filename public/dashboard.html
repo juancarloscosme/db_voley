@@ -22,6 +22,7 @@
     <button onclick="mostrar('clases')">📅 Clases</button>
     <button id="btn-usuarios" class="oculto" onclick="mostrar('usuarios')">👥 Usuarios</button>
     <button onclick="mostrar('asistencias')">✅ Asistencias</button>
+    <button onclick="mostrar('expediente')">📋 Expediente</button>
   </nav>
 
   <main>
@@ -253,6 +254,47 @@
       <h3>Historial de la clase</h3>
       <div id="lista-asistencias"></div>
     </section>
+
+
+    <!-- SECCIÓN DE EXPEDIENTE -->
+    <section id="expediente" class="seccion oculto">
+      <h2>📋 Expediente del Alumno</h2>
+      
+      <div style="margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ddd;">
+        <label><strong>Seleccione un jugador: </strong></label>
+        <select id="exp_jugador" onchange="cargarExpediente()" style="width: 250px;">
+          <option value="">Cargando alumnos...</option>
+        </select>
+      </div>
+
+      <div id="contenido-expediente" class="oculto">
+        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+          
+          <!-- COLUMNA IZQUIERDA: PAGOS Y ASISTENCIA -->
+          <div style="flex: 1; min-width: 300px;">
+            <div style="background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px;">
+              <h3>💰 Estado de Cuenta</h3>
+              <div id="exp_pagos"></div>
+            </div>
+
+            <div style="background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+              <h3>✅ Resumen de Asistencia</h3>
+              <div id="exp_asistencia"></div>
+            </div>
+          </div>
+
+          <!-- COLUMNA DERECHA: EVALUACIONES -->
+          <div style="flex: 1; min-width: 300px;">
+            <div style="background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+              <h3>📈 Avance Técnico (Últimas Evaluaciones)</h3>
+              <div id="exp_evaluaciones"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
 
   </main>
 
