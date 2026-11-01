@@ -7,7 +7,8 @@ const { verificarToken, permitirRoles } = require('../middleware/auth');
 // Registro (Solo admin, pero permite el primero si la BD está vacía)
 router.post('/registro', async (req, res) => {
   try {
-    const { nombre, email, password, rol, telefono, direccion } = req.body; // <-- Aseguramos que se capturen
+    // 1. Agregamos 'dni' a la captura de datos
+    const { nombre, email, password, rol, telefono, direccion, dni } = req.body;
 
     if (!nombre || !email || !password) {
       return res.status(400).json({ error: 'Faltan datos obligatorios' });
@@ -21,11 +22,11 @@ router.post('/registro', async (req, res) => {
     const hash = await bcrypt.hash(password, 10);
     const rolFinal = rol || 'jugador';
 
-    // Insertamos incluyendo telefono y direccion
+    // 2. Agregamos 'dni' al INSERT
     const [result] = await pool.query(
-      `INSERT INTO usuarios (nombre, email, password_hash, rol, telefono, direccion) 
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [nombre, email, hash, rolFinal, telefono || null, direccion || null]
+      `INSERT INTO usuarios (nombre, email, password_hash, rol, telefono, direccion, dni) 
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [nombre, email, hash, rolFinal, telefono || null, direccion || null, dni || null]
     );
 
     if (rolFinal === 'jugador') {

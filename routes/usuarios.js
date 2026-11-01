@@ -8,7 +8,7 @@ router.use(verificarToken);
 router.get('/', permitirRoles('admin'), async (req, res) => {
   try {
     const [rows] = await pool.query(
-      'SELECT id, nombre, email, rol, activo FROM usuarios ORDER BY id'
+      'SELECT id, nombre, email, rol, activo, telefono, direccion, dni FROM usuarios ORDER BY id' 
     );
     res.json(rows);
   } catch (err) {

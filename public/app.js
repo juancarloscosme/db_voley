@@ -561,39 +561,38 @@ async function cargarUsuarios() {
   document.getElementById('lista-usuarios').innerHTML = data.map(u => `
     <div class="row" style="flex-direction: column; align-items: flex-start; padding: 10px; border-bottom: 1px solid #eee;">
       <div style="display:flex; justify-content:space-between; width:100%;">
-        <strong>${u.nombre}</strong>
+        <strong>${u.nombre} ${u.dni ? `(DNI: ${u.dni})` : ''}</strong> <!-- NUEVO -->
         <span class="estado">${u.rol}</span>
       </div>
       <span style="font-size: 0.9em; color: #555;">
         📧 ${u.email} | 📱 ${u.telefono || 'Sin teléfono'} | 📍 ${u.direccion || 'Sin dirección'}
       </span>
       <div style="margin-top: 5px;">
-        <!-- (Aquí van los botones de editar, clave y eliminar) -->
-           ${u.rol !== 'admin' ? `
-          <button onclick="editarUsuario(${u.id})" style="background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Editar datos">✏️</button>
-          <button onclick="cambiarPassword(${u.id})" style="background: #9b59b6; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Cambiar contraseña">🔑</button>
+        ${u.rol !== 'admin' ? `
+          <button onclick="editarUsuario(${u.id})" style="background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">✏️</button>
+          <button onclick="cambiarPassword(${u.id})" style="background: #9b59b6; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">🔑</button>
           <button onclick="eliminarUsuario(${u.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>
-             ` : ''}
+        ` : ''}
       </div>
     </div>
-  `).join('');  
+  `).join('');
 
 }
 
 async function crearUsuario() {
   const nombre = document.getElementById('usr_nombre').value;
+  const dni = document.getElementById('usr_dni').value; // <-- NUEVO
   const email = document.getElementById('usr_email').value;
   const password = document.getElementById('usr_pass').value;
   const rol = document.getElementById('usr_rol').value;
   const telefono = document.getElementById('usr_tel').value;
   const direccion = document.getElementById('usr_dir').value;
 
-  if (!nombre || !email || !password || !direccion) {
-    alert('Por favor, llena todos los campos obligatorios (incluyendo dirección)');
+  if (!nombre || !email || !password || !direccion || !dni) {
+    alert('Por favor, llena todos los campos obligatorios (incluyendo DNI)');
     return;
   }
 
-  // VALIDACIÓN DE 9 DÍGITOS
   if (telefono.length !== 9) {
     alert('⚠️ El número móvil debe tener exactamente 9 dígitos.');
     return;
@@ -602,7 +601,7 @@ async function crearUsuario() {
   const res = await fetch(`${API}/auth/registro`, {
     method: 'POST',
     headers: headers(),
-    body: JSON.stringify({ nombre, email, password, rol, telefono, direccion })
+    body: JSON.stringify({ nombre, email, password, rol, telefono, direccion, dni })
   });
 
   const data = await res.json();
@@ -611,11 +610,16 @@ async function crearUsuario() {
     alert('Error: ' + data.error);
   } else {
     alert('Usuario creado exitosamente');
+    
+    // Limpiar TODAS las cajas
     document.getElementById('usr_nombre').value = '';
+    document.getElementById('usr_dni').value = ''; // <-- NUEVO
     document.getElementById('usr_email').value = '';
     document.getElementById('usr_pass').value = '';
     document.getElementById('usr_tel').value = '';
     document.getElementById('usr_dir').value = '';
+    
+    document.getElementById('usr_rol').value = 'jugador';
     cargarUsuarios();
   }
 }
