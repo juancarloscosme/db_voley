@@ -176,14 +176,14 @@ async function cargarPagos() {
       <div>
         <strong>#${p.id} - ${p.nombre_jugador}</strong> <br>
         <span style="font-size: 0.9em; color: #555;">
-          ${p.concepto} - S/ ${p.monto} <br>
+          <!-- AQUÍ SE MUESTRA EL CONCEPTO CON EL HORARIO -->
+          <strong>${p.concepto}</strong> - S/ ${p.monto} <br>
           <strong>Del:</strong> ${fInicio} | <strong>Al:</strong> ${fFin}
         </span>
       </div>
       <div style="display:flex; gap: 8px; align-items:center;">
         <span class="estado ${p.estado}">${p.estado}</span>
         
-        <!-- BOTÓN EDITAR -->
         <button onclick="editarPago(${p.id})" style="background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">✏️</button>
 
         ${p.estado === 'pendiente' ? `<button onclick="pagar(${p.id})" style="background: #2ecc71; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Pagar</button><button onclick="eliminarPago(${p.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>` : ''}
@@ -721,10 +721,10 @@ async function cargarSelectConceptos() {
       const clases = await res.json();
       const datalist = document.getElementById('lista-clases-concepto');
       
-      // Agregamos el día y la hora al texto para que no se confundan
+      // Agregamos el día y la hora al valor que se guardará
       datalist.innerHTML = clases.map(c => {
         const hora = c.hora_inicio ? c.hora_inicio.slice(0, 5) : '';
-        return `<option value="${c.nombre}">${c.nombre} (${c.dia_semana} ${hora})</option>`;
+        return `<option value="${c.nombre} (${c.dia_semana} ${hora})">${c.nombre} (${c.dia_semana} ${hora})</option>`;
       }).join('');
     }
   } catch (error) {
