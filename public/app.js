@@ -588,12 +588,18 @@ async function crearUsuario() {
   const telefono = document.getElementById('usr_tel').value;
   const direccion = document.getElementById('usr_dir').value;
 
-  if (!nombre || !email || !password || !telefono || !direccion) {
-    alert('Por favor, llena todos los campos');
+  if (!nombre || !email || !password || !direccion) {
+    alert('Por favor, llena todos los campos obligatorios (incluyendo dirección)');
     return;
   }
 
- const res = await fetch(`${API}/auth/registro`, {
+  // VALIDACIÓN DE 9 DÍGITOS
+  if (telefono.length !== 9) {
+    alert('⚠️ El número móvil debe tener exactamente 9 dígitos.');
+    return;
+  }
+
+  const res = await fetch(`${API}/auth/registro`, {
     method: 'POST',
     headers: headers(),
     body: JSON.stringify({ nombre, email, password, rol, telefono, direccion })
@@ -608,6 +614,8 @@ async function crearUsuario() {
     document.getElementById('usr_nombre').value = '';
     document.getElementById('usr_email').value = '';
     document.getElementById('usr_pass').value = '';
+    document.getElementById('usr_tel').value = '';
+    document.getElementById('usr_dir').value = '';
     cargarUsuarios();
   }
 }

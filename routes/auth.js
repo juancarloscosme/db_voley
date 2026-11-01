@@ -7,29 +7,10 @@ const { verificarToken, permitirRoles } = require('../middleware/auth');
 // Registro (Solo admin, pero permite el primero si la BD está vacía)
 router.post('/registro', async (req, res) => {
   try {
-    const { nombre, email, password, rol } = req.body;
+    const { nombre, email, password, rol, telefono, direccion } = req.body; // <-- Aseguramos que se capturen
+
     if (!nombre || !email || !password) {
-      return res.status(400).json({ error: 'Faltan datos' });
-    }
-
-    // Verificar cuántos usuarios hay
-    const [countRows] = await pool.query('SELECT COUNT(*) as total FROM usuarios');
-    const esPrimerUsuario = countRows[0].total === 0;
-
-    if (!esPrimerUsuario) {
-      // Si NO es el primero, verificamos que quien lo crea sea un admin logueado
-      const authHeader = req.headers['authorization'];
-      if (!authHeader) return res.status(401).json({ error: 'No autorizado' });
-      
-      try {
-        const token = authHeader.split(' ')[1];
-        const decodificado = jwt.verify(token, process.env.JWT_SECRET);
-        if (decodificado.rol !== 'admin') {
-          return res.status(403).json({ error: 'Solo los administradores pueden crear usuarios' });
-        }
-      } catch (err) {
-        return res.status(403).json({ error: 'Token inválido' });
-      }
+      return res.status(400).json({ error: 'Faltan datos obligatorios' });
     }
 
     const [existe] = await pool.query('SELECT id FROM usuarios WHERE email = ?', [email]);
@@ -40,13 +21,13 @@ router.post('/registro', async (req, res) => {
     const hash = await bcrypt.hash(password, 10);
     const rolFinal = rol || 'jugador';
 
-    // 1. Insertamos el usuario en la tabla usuarios
+    // Insertamos incluyendo telefono y direccion
     const [result] = await pool.query(
-      `INSERT INTO usuarios (nombre, email, password_hash, rol) VALUES (?, ?, ?, ?)`,
-      [nombre, email, hash, rolFinal]
+      `INSERT INTO usuarios (nombre, email, password_hash, rol, telefono, direccion) 
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [nombre, email, hash, rolFinal, telefono || null, direccion || null]
     );
 
-    // 2. Si el rol es jugador, creamos su perfil automáticamente en la tabla jugadores
     if (rolFinal === 'jugador') {
       await pool.query(
         `INSERT INTO jugadores (usuario_id, categoria, posicion, dorsal) 
@@ -55,7 +36,6 @@ router.post('/registro', async (req, res) => {
       );
     }
 
-    // 3. Devolvemos los datos del usuario creado
     const [rows] = await pool.query('SELECT id, nombre, email, rol FROM usuarios WHERE id = ?', [result.insertId]);
     res.json(rows[0]);
   } catch (err) {
