@@ -137,3 +137,4 @@ ALTER TABLE jugadores ADD COLUMN nombre_completo VARCHAR(100) DEFAULT NULL;
 ALTER TABLE jugadores ADD COLUMN telefono VARCHAR(20) DEFAULT NULL;
 ALTER TABLE jugadores MODIFY usuario_id INT NULL;
 ALTER TABLE usuarios MODIFY rol ENUM('admin', 'entrenador', 'jugador', 'padre', 'cajero', 'directivo', 'voluntario');
+ALTER TABLE evaluaciones ADD COLUMN clase_id INT DEFAULT NULL;
