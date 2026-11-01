@@ -1784,3 +1784,4 @@ async function descargarPDFFamilia() {
 
   ventana.document.write(html);
   ventana.document.close();
+  }
