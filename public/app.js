@@ -73,23 +73,17 @@ function mostrar(id) {
     cargarSelectJugadores();
     cargarSelectConceptos();
   }
-  
   if (id === 'inventario') cargarInventario();
   
-  // --- INICIO DE LA MAGIA PARA CLASES ---
   if (id === 'clases') {
     cargarClases();
-    
-    // Esto llena el select de alumnos para la evaluación
     fetch(`${API}/usuarios/jugadores`, { headers: headers() })
       .then(r => r.json())
       .then(jugadores => {
         document.getElementById('eval_jugador').innerHTML = '<option value="">Seleccione Alumno</option>' + 
           jugadores.map(j => `<option value="${j.id}">${j.nombre}</option>`).join('');
-      })
-      .catch(error => console.error("Error al cargar alumnos:", error));
+      });
   }
-  // --- FIN DE LA MAGIA ---
 
   if (id === 'usuarios') cargarUsuarios();
   
@@ -97,18 +91,16 @@ function mostrar(id) {
     cargarSelectClasesAsistencia();
     cargarSelectJugadoresAsistencia();
     cargarAsistencias();
-
-    // Poner fecha de hoy por defecto
-    const hoy = new Date().toISOString().split('T')[0];
-    if (document.getElementById('asis_fecha_rapida')) {
-      document.getElementById('asis_fecha_rapida').value = hoy;
-    }
-
   }
 
-   if (id === 'expediente') {
+  if (id === 'expediente') {
     cargarSelectJugadoresExpediente();
-    cargarSelectClasesExpediente(); // <-- NUEVA FUNCIÓN
+    cargarSelectClasesExpediente();
+  }
+
+  // AQUÍ ESTÁ LA MAGIA PARA FAMILIAS
+  if (id === 'familias') {
+    cargarSelectFamilias(); 
   }
 }
 
