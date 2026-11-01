@@ -1,6 +1,7 @@
 const API = '/api';
 const token = () => localStorage.getItem('token');
 
+// Variable global para saber si estamos editando un item del inventario
 let itemEditandoId = null; 
 
 // ---------- LOGIN ----------
@@ -74,26 +75,41 @@ function mostrar(id) {
   }
   if (id === 'inventario') cargarInventario();
   
-  if (id === 'clases') {
+   if (id === 'clases') {
     cargarClases();
     
-    // Solo muestra alumnos que tengan pagos registrados
+    // 1. Buscamos a todos los jugadores, pagos y clases
     Promise.all([
       fetch(`${API}/usuarios/jugadores`, { headers: headers() }).then(r => r.json()),
       fetch(`${API}/pagos`, { headers: headers() }).then(r => r.json()),
       fetch(`${API}/clases`, { headers: headers() }).then(r => r.json())
     ]).then(([jugadores, pagos, clases]) => {
+      
       let opcionesHTML = '<option value="">Seleccione Alumno y Clase</option>';
+
+      // 2. Recorremos los pagos (porque cada pago indica a qué clase se inscribió)
       pagos.forEach(pago => {
+        // Buscamos al jugador de ese pago
         const jugador = jugadores.find(j => j.id === pago.jugador_id);
-        if (!jugador) return;
+        if (!jugador) return; // Si no lo encuentra, pasamos al siguiente
+
+        // Buscamos la clase que coincida con el concepto del pago
         const clase = clases.find(c => pago.concepto && pago.concepto.includes(c.nombre));
+
+        // Creamos un texto que muestre al alumno y su horario
         let textoOpcion = jugador.nombre;
         if (clase) {
-          textoOpcion += ` (${clase.dia_semana} ${clase.hora_inicio.slice(0, 5)})`;
+          const hora = clase.hora_inicio.slice(0, 5);
+          textoOpcion += ` (${clase.dia_semana} ${hora})`;
+        } else {
+          textoOpcion += ` (${pago.concepto})`;
         }
+
+        // Agregamos la opción al select
         opcionesHTML += `<option value="${jugador.id}">${textoOpcion}</option>`;
       });
+
+      // 3. Llenamos el selector con las opciones generadas
       document.getElementById('eval_jugador').innerHTML = opcionesHTML;
     });
   }
@@ -111,6 +127,7 @@ function mostrar(id) {
     cargarSelectClasesExpediente();
   }
 
+  // AQUÍ ESTÁ LA MAGIA PARA FAMILIAS
   if (id === 'familias') {
     cargarSelectFamilias(); 
   }
@@ -159,6 +176,7 @@ async function cargarPagos() {
       <div>
         <strong>#${p.id} - ${p.nombre_jugador}</strong> <br>
         <span style="font-size: 0.9em; color: #555;">
+          <!-- AQUÍ SE MUESTRA EL CONCEPTO CON EL HORARIO -->
           <strong>${p.concepto}</strong> - S/ ${p.monto} <br>
           <strong>Del:</strong> ${fInicio} | <strong>Al:</strong> ${fFin}
         </span>
@@ -191,7 +209,11 @@ async function cargarPagos() {
 function actualizarGrafico(stats) {
   const ctx = document.getElementById('miGrafico');
   if (!ctx) return;
-  if (chartInstance) chartInstance.destroy();
+
+  if (chartInstance) {
+    chartInstance.destroy();
+  }
+
   chartInstance = new Chart(ctx, {
     type: 'bar',
     data: {
@@ -203,26 +225,44 @@ function actualizarGrafico(stats) {
         borderWidth: 1
       }]
     },
-    options: { responsive: true, plugins: { legend: { display: false } } }
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: 'Ingresos vs Pendientes', font: { size: 16 } }
+      }
+    }
   });
 }
 
 function mostrarGraficos() {
   const contenedor = document.getElementById('contenedor-graficos');
   contenedor.classList.toggle('oculto');
-  if (!contenedor.classList.contains('oculto')) cargarPagos(); 
+  if (!contenedor.classList.contains('oculto')) {
+    cargarPagos(); 
+  }
 }
 
 async function eliminarPago(id) {
-  if (!confirm('⚠️ ¿Estás seguro de eliminar este pago para siempre?')) return;
-  await fetch(`${API}/pagos/${id}`, { method: 'DELETE', headers: headers() });
-  cargarPagos();
+  if (!confirm('⚠️ ¿Estás seguro de eliminar este pago para siempre? Esta acción no se puede deshacer.')) return;
+  
+  const res = await fetch(`${API}/pagos/${id}`, {
+    method: 'DELETE',
+    headers: headers()
+  });
+  
+  if (res.ok) {
+    cargarPagos();
+  } else {
+    alert('Error al eliminar el pago');
+  }
 }
 
 async function editarPago(id) {
   const res = await fetch(`${API}/pagos`, { headers: headers() });
   const data = await res.json();
   const p = data.find(pago => pago.id === id);
+
   if (!p) return;
 
   const concepto = prompt('Nuevo concepto:', p.concepto);
@@ -232,38 +272,63 @@ async function editarPago(id) {
 
   if (concepto === null || monto === null) return;
 
-  await fetch(`${API}/pagos/${id}`, {
-    method: 'PUT', headers: headers(),
-    body: JSON.stringify({ concepto, monto, fecha_inicio: fechaInicio, fecha_vencimiento: fechaFin })
+  const updateRes = await fetch(`${API}/pagos/${id}`, {
+    method: 'PUT',
+    headers: headers(),
+    body: JSON.stringify({
+      concepto: concepto,
+      monto: monto,
+      fecha_inicio: fechaInicio,
+      fecha_vencimiento: fechaFin
+    })
   });
-  cargarPagos();
+
+  if (updateRes.ok) {
+    cargarPagos();
+  } else {
+    alert('Error al editar el pago');
+  }
 }
 
 async function crearPago() {
   const jugador_id = document.getElementById('pago_jugador').value;
-  const concepto = document.getElementById('pago_concepto').value; 
+  const conceptoInput = document.getElementById('pago_concepto');
+  
+  // Si el usuario seleccionó una sugerencia del datalist, tomamos el texto exacto
+  const concepto = conceptoInput.value; 
+  
   const monto = document.getElementById('pago_monto').value;
   const fechaInicioVal = document.getElementById('pago_fecha_inicio').value;
   const duracion = parseInt(document.getElementById('pago_duracion').value);
   const tipo = document.getElementById('pago_tipo_duracion').value;
 
   if (!jugador_id || !concepto || !monto || !fechaInicioVal || !duracion) {
-    alert('Por favor, llena todos los campos.');
+    alert('Por favor, llena todos los campos, incluyendo la fecha de inicio y la duración.');
     return;
   }
 
   const fechaInicio = new Date(fechaInicioVal + 'T00:00:00');
   const fechaFin = new Date(fechaInicio); 
   
-  if (tipo === 'dias') fechaFin.setDate(fechaFin.getDate() + duracion);
-  else if (tipo === 'meses') fechaFin.setMonth(fechaFin.getMonth() + duracion);
-  else if (tipo === 'anios') fechaFin.setFullYear(fechaFin.getFullYear() + duracion);
+  if (tipo === 'dias') {
+    fechaFin.setDate(fechaFin.getDate() + duracion);
+  } else if (tipo === 'meses') {
+    fechaFin.setMonth(fechaFin.getMonth() + duracion);
+  } else if (tipo === 'anios') {
+    fechaFin.setFullYear(fechaFin.getFullYear() + duracion);
+  }
 
   const fechaFinString = fechaFin.toISOString().split('T')[0];
 
   await fetch(`${API}/pagos`, {
     method: 'POST', headers: headers(),
-    body: JSON.stringify({ jugador_id, concepto, monto, fecha_inicio: fechaInicioVal, fecha_vencimiento: fechaFinString })
+    body: JSON.stringify({
+      jugador_id: jugador_id,
+      concepto: concepto, // Se guarda el texto completo (incluyendo el horario si lo elegiste)
+      monto: monto,
+      fecha_inicio: fechaInicioVal,
+      fecha_vencimiento: fechaFinString
+    })
   });
   
   document.getElementById('pago_concepto').value = '';
@@ -280,22 +345,380 @@ async function pagar(id) {
 }
 
 async function anularPago(id) {
-  if (!confirm('¿Estás seguro de anular este pago?')) return;
+  if (!confirm('¿Estás seguro de anular este pago? Volverá a estado pendiente.')) return;
   await fetch(`${API}/pagos/${id}/anular`, { method: 'PUT', headers: headers() });
   cargarPagos();
 }
 
-// ---------- SELECTORES PAGOS ----------
+// ---------- INVENTARIO ----------
+async function cargarInventario() {
+  const res = await fetch(`${API}/inventario`, { headers: headers() });
+  const data = await res.json();
+  
+  const buscar = document.getElementById('buscar_inv').value.toLowerCase();
+  const cat = document.getElementById('filtro_cat').value;
+  const mesFiltro = document.getElementById('filtro_mes_inv').value;
+
+  const filtrados = data.filter(i => {
+    const coincideTexto = i.item.toLowerCase().includes(buscar);
+    const coincideCat = cat === 'todos' || i.categoria === cat;
+    
+    let coincideMes = true;
+    if (mesFiltro && i.fecha_ingreso) {
+      coincideMes = i.fecha_ingreso.startsWith(mesFiltro);
+    } else if (mesFiltro && !i.fecha_ingreso) {
+      coincideMes = false;
+    }
+
+    return coincideTexto && coincideCat && coincideMes;
+  });
+
+  document.getElementById('lista-inventario').innerHTML = filtrados.map(i => {
+    const fIngreso = i.fecha_ingreso ? i.fecha_ingreso.split('T')[0] : 'N/A';
+
+    return `
+    <div class="row">
+      <div>
+        <strong>${i.item} (${i.categoria}) x${i.cantidad}</strong> <br>
+        <span style="font-size: 0.9em; color: #555;">
+          Vida útil: ${i.vida_util_meses} meses | Prov: ${i.proveedor || 'N/A'} | Ingreso: ${fIngreso}
+        </span>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <span class="estado">${i.estado}</span>
+        <button onclick="editarItem(${i.id})" style="background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">✏️</button>
+        <button onclick="eliminarItem(${i.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>
+      </div>
+    </div>
+  `}).join('');
+}
+
+async function eliminarItem(id) {
+  if (!confirm('¿Estás seguro de eliminar este item del inventario?')) return;
+  
+  const res = await fetch(`${API}/inventario/${id}`, {
+    method: 'DELETE',
+    headers: headers()
+  });
+  
+  if (res.ok) {
+    cargarInventario();
+  } else {
+    alert('Error al eliminar el item');
+  }
+}
+
+async function guardarItem() {
+  const datos = {
+    item: document.getElementById('inv_item').value,
+    categoria: document.getElementById('inv_cat').value,
+    cantidad: document.getElementById('inv_cant').value,
+    proveedor: document.getElementById('inv_proveedor').value,
+    fecha_ingreso: document.getElementById('inv_fecha_ingreso').value,
+    estado: document.getElementById('inv_estado').value,
+    vida_util_meses: document.getElementById('inv_vida').value
+  };
+
+  if (!datos.item || !datos.cantidad) {
+    alert('Por favor, llena al menos el Item y la Cantidad.');
+    return;
+  }
+
+  let url = `${API}/inventario`;
+  let method = 'POST';
+
+  if (itemEditandoId) {
+    url = `${API}/inventario/${itemEditandoId}`;
+    method = 'PUT';
+  }
+
+  const res = await fetch(url, {
+    method: method, headers: headers(),
+    body: JSON.stringify(datos)
+  });
+
+  if (res.ok) {
+    cancelarEdicionItem(); 
+  } else {
+    alert('Error al guardar. Verifica la consola.');
+  }
+}
+
+async function editarItem(id) {
+  const res = await fetch(`${API}/inventario`, { headers: headers() });
+  const data = await res.json();
+  const i = data.find(item => item.id === id);
+
+  if (!i) return;
+
+  document.getElementById('inv_item').value = i.item;
+  document.getElementById('inv_cat').value = i.categoria;
+  document.getElementById('inv_cant').value = i.cantidad;
+  document.getElementById('inv_proveedor').value = i.proveedor || '';
+  document.getElementById('inv_fecha_ingreso').value = i.fecha_ingreso ? i.fecha_ingreso.split('T')[0] : '';
+  document.getElementById('inv_estado').value = i.estado;
+  document.getElementById('inv_vida').value = i.vida_util_meses;
+
+  itemEditandoId = id;
+  const btnGuardar = document.getElementById('btn-guardar-item');
+  btnGuardar.textContent = 'Actualizar';
+  btnGuardar.style.background = '#f39c12'; 
+  btnGuardar.style.color = 'white';
+  btnGuardar.style.border = 'none';
+  btnGuardar.style.padding = '8px';
+  btnGuardar.style.borderRadius = '6px';
+
+  document.getElementById('btn-cancelar-item').classList.remove('oculto');
+  
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function cancelarEdicionItem() {
+  itemEditandoId = null;
+  
+  document.getElementById('inv_item').value = '';
+  document.getElementById('inv_cat').value = '';
+  document.getElementById('inv_cant').value = '';
+  document.getElementById('inv_proveedor').value = '';
+  document.getElementById('inv_fecha_ingreso').value = '';
+  document.getElementById('inv_vida').value = '';
+  
+  const btnGuardar = document.getElementById('btn-guardar-item');
+  btnGuardar.textContent = 'Agregar';
+  btnGuardar.style.background = '';
+  btnGuardar.style.color = '';
+  btnGuardar.style.border = '';
+  btnGuardar.style.padding = '';
+  btnGuardar.style.borderRadius = '';
+
+  document.getElementById('btn-cancelar-item').classList.add('oculto');
+  
+  cargarInventario();
+}
+
+// ---------- CLASES ----------
+async function cargarClases() {
+  const res = await fetch(`${API}/clases`, { headers: headers() });
+  const data = await res.json();
+  
+  document.getElementById('lista-clases').innerHTML = data.map(c => {
+    const inicioLimpio = c.hora_inicio ? c.hora_inicio.slice(0, 5) : '';
+    const finLimpio = c.hora_fin ? c.hora_fin.slice(0, 5) : '';
+
+    return `
+    <div class="row">
+      <span>${c.nombre} - ${c.categoria} - ${c.dia_semana} ${inicioLimpio} a ${finLimpio}</span>
+      <div style="display:flex; gap: 10px; align-items:center;">
+        <span>${c.cancha || ''}</span>
+        <button onclick="editarClase(${c.id})" style="background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">✏️</button>
+        <button onclick="eliminarClase(${c.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function eliminarClase(id) {
+  if (!confirm('¿Estás seguro de eliminar esta clase?')) return;
+  const res = await fetch(`${API}/clases/${id}`, { method: 'DELETE', headers: headers() });
+  if (res.ok) cargarClases();
+}
+
+async function editarClase(id) {
+  const res = await fetch(`${API}/clases`, { headers: headers() });
+  const data = await res.json();
+  const c = data.find(clase => clase.id === id);
+
+  if (!c) return;
+
+  const nombre = prompt('Nombre de la clase:', c.nombre);
+  const categoria = prompt('Categoría:', c.categoria);
+  const dia = prompt('Día:', c.dia_semana);
+  const inicio = prompt('Hora Inicio (HH:MM):', c.hora_inicio ? c.hora_inicio.slice(0, 5) : '');
+  const fin = prompt('Hora Fin (HH:MM):', c.hora_fin ? c.hora_fin.slice(0, 5) : '');
+  const cancha = prompt('Cancha:', c.cancha);
+
+  if (nombre === null || categoria === null) return;
+
+  const updateRes = await fetch(`${API}/clases/${id}`, {
+    method: 'PUT',
+    headers: headers(),
+    body: JSON.stringify({
+      nombre, categoria, dia_semana: dia, hora_inicio: inicio, hora_fin: fin, cancha
+    })
+  });
+
+  if (updateRes.ok) {
+    cargarClases();
+  } else {
+    alert('Error al editar la clase');
+  }
+}
+
+async function crearClase() {
+  await fetch(`${API}/clases`, {
+    method: 'POST', headers: headers(),
+    body: JSON.stringify({
+      nombre: document.getElementById('cl_nombre').value,
+      categoria: document.getElementById('cl_cat').value,
+      dia_semana: document.getElementById('cl_dia').value,
+      hora_inicio: document.getElementById('cl_ini').value,
+      hora_fin: document.getElementById('cl_fin').value,
+      cancha: document.getElementById('cl_cancha').value
+    })
+  });
+
+  document.getElementById('cl_nombre').value = '';
+  document.getElementById('cl_cat').value = '';
+  document.getElementById('cl_dia').value = '';
+  document.getElementById('cl_ini').value = '';
+  document.getElementById('cl_fin').value = '';
+  document.getElementById('cl_cancha').value = '';
+
+  cargarClases();
+}
+
+// ---------- USUARIOS ----------
+async function cargarUsuarios() {
+  const res = await fetch(`${API}/usuarios`, { headers: headers() });
+  if (!res.ok) return;
+  let data = await res.json();
+
+  const busqueda = document.getElementById('buscar_usuario').value.toLowerCase();
+  const mostrarBajas = document.getElementById('chk_bajas').checked;
+
+  if (busqueda) {
+    data = data.filter(u => 
+      u.nombre.toLowerCase().includes(busqueda) || 
+      u.email.toLowerCase().includes(busqueda)
+    );
+  }
+
+  if (!mostrarBajas) {
+    data = data.filter(u => u.activo === 1 || u.rol === 'admin'); 
+  }
+
+  document.getElementById('lista-usuarios').innerHTML = data.map(u => `
+    <div class="row" style="flex-direction: column; align-items: flex-start; padding: 10px; border-bottom: 1px solid #eee; opacity: ${u.activo === 0 ? '0.6' : '1'};">
+      <div style="display:flex; justify-content:space-between; width:100%;">
+        <strong>${u.nombre} ${u.dni ? `(Doc: ${u.dni})` : ''} ${u.activo === 0 ? '<span style="color:red; font-size:0.8em;">[DE BAJA]</span>' : ''}</strong>
+        <span class="estado">${u.rol}</span>
+      </div>
+      <span style="font-size: 0.9em; color: #555;">
+        📧 ${u.email} | 📱 ${u.telefono || 'Sin teléfono'} | 📍 ${u.direccion || 'Sin dirección'}
+      </span>
+      <div style="margin-top: 5px;">
+        ${u.rol !== 'admin' ? `
+          <button onclick="editarUsuario(${u.id})" style="background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">✏️</button>
+          
+          ${u.activo === 1 
+            ? `<button onclick="cambiarEstadoUsuario(${u.id}, 1)" style="background: #f39c12; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Dar de baja">Baja</button>` 
+            : `<button onclick="cambiarEstadoUsuario(${u.id}, 0)" style="background: #2ecc71; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Reactivar">Reactivar</button>`
+          }
+          
+          <button onclick="eliminarUsuario(${u.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">❌</button>
+        ` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+async function crearUsuario() {
+  const nombre = document.getElementById('usr_nombre').value;
+  const dni = document.getElementById('usr_dni').value;
+  const email = document.getElementById('usr_email').value;
+  const password = document.getElementById('usr_pass').value;
+  const rol = document.getElementById('usr_rol').value;
+  const telefono = document.getElementById('usr_tel').value;
+  const direccion = document.getElementById('usr_dir').value;
+
+  if (!nombre || !email || !password || !direccion || !dni) {
+    alert('Por favor, llena todos los campos obligatorios.');
+    return;
+  }
+
+  // Validación estricta del teléfono
+  if (telefono.length !== 9) {
+    alert('⚠️ El número móvil debe tener exactamente 9 dígitos.');
+    return;
+  }
+
+  const res = await fetch(`${API}/auth/registro`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ nombre, email, password, rol, telefono, direccion, dni })
+  });
+
+  const data = await res.json();
+
+  if (data.error) {
+    alert('Error: ' + data.error);
+  } else {
+    alert('Usuario creado exitosamente');
+    
+    document.getElementById('usr_nombre').value = '';
+    document.getElementById('usr_dni').value = '';
+    document.getElementById('usr_email').value = '';
+    document.getElementById('usr_pass').value = '';
+    document.getElementById('usr_tel').value = '';
+    document.getElementById('usr_dir').value = '';
+    
+    document.getElementById('usr_rol').value = 'padre'; // Vuelve a apoderado por defecto
+    cargarUsuarios();
+  }
+}
+
+async function cambiarEstadoUsuario(id, activoActual) {
+  const nuevoEstado = activoActual === 1 ? 0 : 1; 
+  const accion = activoActual === 1 ? 'dar de baja' : 'reactivar';
+  
+  if (!confirm(`¿Estás seguro de ${accion} a este usuario?`)) return;
+
+  const res = await fetch(`${API}/usuarios/${id}/estado`, {
+    method: 'PUT',
+    headers: headers(),
+    body: JSON.stringify({ activo: nuevoEstado })
+  });
+  
+  if (res.ok) cargarUsuarios();
+}
+
+async function eliminarUsuario(id) {
+  if (!confirm('⚠️ ¿Estás SEGURO de eliminar a este usuario para siempre? Se borrarán sus pagos y datos.')) return;
+
+  const res = await fetch(`${API}/usuarios/${id}`, {
+    method: 'DELETE',
+    headers: headers()
+  });
+  
+  if (res.ok) {
+    alert('Usuario eliminado');
+    cargarUsuarios(); // Recarga la lista y quita al usuario borrado
+  } else {
+    alert('No se puede eliminar. Puede tener registros asociados.');
+  }
+}
+
+// ---------- SELECT DE JUGADORES PARA PAGOS ----------
 async function cargarSelectJugadores() {
   try {
     const res = await fetch(`${API}/usuarios/jugadores`, { headers: headers() });
     if (res.ok) {
       const jugadores = await res.json();
       const select = document.getElementById('pago_jugador');
+      
+      if (jugadores.length === 0) {
+        select.innerHTML = '<option value="">No hay jugadores registrados</option>';
+        return;
+      }
+      
       select.innerHTML = '<option value="">Seleccione un jugador</option>' + 
         jugadores.map(j => `<option value="${j.id}">${j.nombre}</option>`).join('');
+    } else {
+      document.getElementById('pago_jugador').innerHTML = '<option value="">Error al cargar</option>';
     }
-  } catch (e) { console.error(e); }
+  } catch (error) {
+    console.error("Error cargando jugadores:", error);
+  }
 }
 
 async function cargarSelectConceptos() {
@@ -304,19 +727,23 @@ async function cargarSelectConceptos() {
     if (res.ok) {
       const clases = await res.json();
       const datalist = document.getElementById('lista-clases-concepto');
-      // AQUÍ SE AGREGA EL HORARIO AL CONCEPTO
+      
+      // Agregamos el día y la hora al valor que se guardará
       datalist.innerHTML = clases.map(c => {
         const hora = c.hora_inicio ? c.hora_inicio.slice(0, 5) : '';
         return `<option value="${c.nombre} (${c.dia_semana} ${hora})">${c.nombre} (${c.dia_semana} ${hora})</option>`;
       }).join('');
     }
-  } catch (error) { console.error(error); }
+  } catch (error) {
+    console.error('Error al cargar clases para conceptos:', error);
+  }
 }
 
-// ---------- REPORTES EXCEL Y PDF ----------
+// ---------- FILTROS PARA REPORTES (PAGOS) ----------
 async function obtenerDatosFiltrados() {
   const res = await fetch(`${API}/pagos`, { headers: headers() });
   const data = await res.json();
+  
   const textoBusqueda = document.getElementById('buscar_pago').value.toLowerCase();
   const filtroEstado = document.getElementById('filtro_estado').value;
   const filtroMes = document.getElementById('filtro_mes').value;
@@ -325,6 +752,7 @@ async function obtenerDatosFiltrados() {
   return data.filter(p => {
     const coincideTexto = p.nombre_jugador.toLowerCase().includes(textoBusqueda) || (p.concepto && p.concepto.toLowerCase().includes(textoBusqueda));
     const coincideEstado = filtroEstado === 'todos' || p.estado === filtroEstado;
+
     let coincideTiempo = true;
     if (p.fecha_inicio) {
       const fechaP = new Date(p.fecha_inicio);
@@ -333,54 +761,1075 @@ async function obtenerDatosFiltrados() {
     } else if (filtroMes !== 'todos' || filtroAnio !== 'todos') {
       coincideTiempo = false; 
     }
+
     return coincideTexto && coincideEstado && coincideTiempo;
   });
 }
 
+// ---------- REPORTE EXCEL (PAGOS) ----------
 async function descargarExcel() {
   const data = await obtenerDatosFiltrados();
-  if (data.length === 0) return alert('No hay pagos para exportar.');
+
+  if (data.length === 0) {
+    alert('No hay pagos para exportar con los filtros actuales.');
+    return;
+  }
+
   let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
   csvContent += "ID,Jugador,Concepto,Monto,Fecha Inicio,Fecha Fin,Estado\n";
+
   data.forEach(p => {
     const fInicio = p.fecha_inicio ? p.fecha_inicio.split('T')[0] : '';
     const fFin = p.fecha_vencimiento ? p.fecha_vencimiento.split('T')[0] : '';
     csvContent += `${p.id},${p.nombre_jugador},${p.concepto},${p.monto},${fInicio},${fFin},${p.estado}\n`;
   });
+
+  const encodedUri = encodeURI(csvContent);
   const link = document.createElement("a");
-  link.setAttribute("href", encodeURI(csvContent));
-  link.setAttribute("download", "Reporte_Pagos.csv");
-  document.body.appendChild(link); link.click(); document.body.removeChild(link);
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", "Reporte_Pagos_Voley.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
+// ---------- REPORTE PDF (PAGOS) ----------
 async function descargarPDF() {
   const data = await obtenerDatosFiltrados();
-  if (data.length === 0) return alert('No hay pagos para exportar.');
 
-  let totalPagado = 0, totalPendiente = 0, countPagados = 0, countPendientes = 0;
+  if (data.length === 0) {
+    alert('No hay pagos para exportar con los filtros actuales.');
+    return;
+  }
+
+  let totalPagado = 0;
+  let totalPendiente = 0;
+  let countPagados = 0;
+  let countPendientes = 0;
+
   data.forEach(p => {
-    if (p.estado === 'pagado') { totalPagado += parseFloat(p.monto); countPagados++; }
-    else if (p.estado === 'pendiente') { totalPendiente += parseFloat(p.monto); countPendientes++; }
+    if (p.estado === 'pagado') {
+      totalPagado += parseFloat(p.monto);
+      countPagados++;
+    } else if (p.estado === 'pendiente') {
+      totalPendiente += parseFloat(p.monto);
+      countPendientes++;
+    }
   });
 
   const ventana = window.open('', '_blank');
+  
   let html = `
-    <html><head><title>Reporte</title><style>
-      body { font-family: Arial; padding: 20px; } h1 { color: #1f4e79; text-align: center; }
-      .resumen { display: flex; justify-content: space-around; background: #eaf2fb; padding: 15px; margin-bottom: 20px; }
-      table { width: 100%; border-collapse: collapse; } th, td { border: 1px solid #ddd; padding: 8px; font-size: 12px; }
-      th { background: #1f4e79; color: white; }
-    </style></head><body>
-      <h1>🏐 Reporte de Ingresos</h1>
+    <html>
+    <head>
+      <title>Reporte de Ingresos - Club Vóley</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h1 { color: #1f4e79; text-align: center; }
+        .fecha { text-align: right; font-size: 12px; color: #666; margin-bottom: 20px; }
+        .resumen { background: #eaf2fb; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-around; }
+        .resumen div { font-weight: bold; font-size: 16px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+        th { background-color: #1f4e79; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .pagado { color: #27ae60; font-weight: bold; }
+        .pendiente { color: #f39c12; font-weight: bold; }
+      </style>
+    </head>
+    <body>
+      <h1>🏐 Reporte de Control de Ingresos</h1>
+      <div class="fecha">Generado el: ${new Date().toLocaleDateString('es-PE')}</div>
+      
       <div class="resumen">
-        <div style="color: #27ae60;">Pagados: S/ ${totalPagado.toFixed(2)} (${countPagados})</div>
-        <div style="color: #f39c12;">Pendientes: S/ ${totalPendiente.toFixed(2)} (${countPendientes})</div>
+        <div style="color: #27ae60;">Total Pagados: S/ ${totalPagado.toFixed(2)} (${countPagados} registros)</div>
+        <div style="color: #f39c12;">Total Pendientes: S/ ${totalPendiente.toFixed(2)} (${countPendientes} registros)</div>
       </div>
-      <table><thead><tr><th>ID</th><th>Jugador</th><th>Concepto</th><th>Monto</th><th>Inicio</th><th>Fin</th><th>Estado</th></tr></thead><tbody>
+
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Jugador</th>
+            <th>Concepto</th>
+            <th>Monto</th>
+            <th>Inicio</th>
+            <th>Fin</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
   `;
+
   data.forEach(p => {
-    html += `<tr><td>${p.id}</td><td>${p.nombre_jugador}</td><td>${p.concepto}</td><td>S/ ${p.monto}</td><td>${p.fecha_inicio?.split('T')[0] || 'N/A'}</td><td>${p.fecha_vencimiento?.split('T')[0] || 'N/A'}</td><td>${p.estado.toUpperCase()}</td></tr>`;
+    const fInicio = p.fecha_inicio ? p.fecha_inicio.split('T')[0] : 'N/A';
+    const fFin = p.fecha_vencimiento ? p.fecha_vencimiento.split('T')[0] : 'N/A';
+    html += `
+      <tr>
+        <td>${p.id}</td>
+        <td>${p.nombre_jugador}</td>
+        <td>${p.concepto}</td>
+        <td>S/ ${p.monto}</td>
+        <td>${fInicio}</td>
+        <td>${fFin}</td>
+        <td class="${p.estado}">${p.estado.toUpperCase()}</td>
+      </tr>
+    `;
   });
-  html += `</tbody></table><script>window.onload = function() { window.print(); }</script></body></html>`;
-  ventana.document.write(html); ventana.document.close();
+
+  html += `
+        </tbody>
+      </table>
+      <script>
+        window.onload = function() { window.print(); }
+      </script>
+    </body>
+    </html>
+  `;
+
+  ventana.document.write(html);
+  ventana.document.close();
 }
+
+// ---------- FILTROS PARA REPORTES (INVENTARIO) ----------
+async function obtenerInventarioFiltrado() {
+  const res = await fetch(`${API}/inventario`, { headers: headers() });
+  const data = await res.json();
+  
+  const buscar = document.getElementById('buscar_inv').value.toLowerCase();
+  const cat = document.getElementById('filtro_cat').value;
+  const mesFiltro = document.getElementById('filtro_mes_inv').value;
+
+  return data.filter(i => {
+    const coincideTexto = i.item.toLowerCase().includes(buscar);
+    const coincideCat = cat === 'todos' || i.categoria === cat;
+    
+    let coincideMes = true;
+    if (mesFiltro && i.fecha_ingreso) {
+      coincideMes = i.fecha_ingreso.startsWith(mesFiltro);
+    } else if (mesFiltro && !i.fecha_ingreso) {
+      coincideMes = false;
+    }
+
+    return coincideTexto && coincideCat && coincideMes;
+  });
+}
+
+// ---------- REPORTE EXCEL (INVENTARIO) ----------
+async function descargarExcelInventario() {
+  const data = await obtenerInventarioFiltrado();
+
+  if (data.length === 0) {
+    alert('No hay items para exportar con los filtros actuales.');
+    return;
+  }
+
+  let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
+  csvContent += "ID,Item,Categoria,Cantidad,Proveedor,Fecha Ingreso,Estado,Vida Util\n";
+
+  data.forEach(i => {
+    const fIngreso = i.fecha_ingreso ? i.fecha_ingreso.split('T')[0] : '';
+    csvContent += `${i.id},${i.item},${i.categoria},${i.cantidad},${i.proveedor || ''},${fIngreso},${i.estado},${i.vida_util_meses}\n`;
+  });
+
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", "Reporte_Inventario.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// ---------- REPORTE PDF (INVENTARIO) ----------
+async function descargarPDFInventario() {
+  const data = await obtenerInventarioFiltrado();
+
+  if (data.length === 0) {
+    alert('No hay items para exportar con los filtros actuales.');
+    return;
+  }
+
+  const ventana = window.open('', '_blank');
+  
+  let html = `
+    <html>
+    <head>
+      <title>Reporte de Inventario - Club Vóley</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h1 { color: #1f4e79; text-align: center; }
+        .fecha { text-align: right; font-size: 12px; color: #666; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+        th { background-color: #1f4e79; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+      </style>
+    </head>
+    <body>
+      <h1>📦 Reporte de Inventario</h1>
+      <div class="fecha">Generado el: ${new Date().toLocaleDateString('es-PE')}</div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Item</th>
+            <th>Categoría</th>
+            <th>Cant.</th>
+            <th>Proveedor</th>
+            <th>Ingreso</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  data.forEach(i => {
+    const fIngreso = i.fecha_ingreso ? i.fecha_ingreso.split('T')[0] : 'N/A';
+    html += `
+      <tr>
+        <td>${i.id}</td>
+        <td>${i.item}</td>
+        <td>${i.categoria}</td>
+        <td>${i.cantidad}</td>
+        <td>${i.proveedor || 'N/A'}</td>
+        <td>${fIngreso}</td>
+        <td>${i.estado.toUpperCase()}</td>
+      </tr>
+    `;
+  });
+
+  html += `
+        </tbody>
+      </table>
+      <script>
+        window.onload = function() { window.print(); }
+      </script>
+    </body>
+    </html>
+  `;
+
+  ventana.document.write(html);
+  ventana.document.close();
+}
+
+// ---------- CAMBIAR CONTRASEÑA ----------
+async function cambiarPassword(id) {
+  const nuevaPass = prompt('Ingresa la nueva contraseña para este usuario:');
+  
+  if (!nuevaPass) return;
+  
+  if (nuevaPass.length < 4) {
+    alert('La contraseña debe tener al menos 4 caracteres.');
+    return;
+  }
+
+  const res = await fetch(`${API}/usuarios/${id}/password`, {
+    method: 'PUT',
+    headers: headers(),
+    body: JSON.stringify({ password: nuevaPass })
+  });
+
+  if (res.ok) {
+    alert('✅ Contraseña actualizada correctamente.');
+  } else {
+    const data = await res.json();
+    alert('Error al cambiar la contraseña: ' + (data.error || 'Intenta de nuevo'));
+  }
+}
+
+// ---------- ASISTENCIAS ----------
+async function cargarSelectClasesAsistencia() {
+  const res = await fetch(`${API}/clases`, { headers: headers() });
+  if (res.ok) {
+    const clases = await res.json();
+    const select = document.getElementById('asis_clase');
+    select.innerHTML = '<option value="">Seleccione una clase</option>' + 
+      clases.map(c => `<option value="${c.id}">${c.nombre} (${c.dia_semana})</option>`).join('');
+  }
+}
+
+async function cargarSelectJugadoresAsistencia() {
+  const res = await fetch(`${API}/usuarios/jugadores`, { headers: headers() });
+  if (res.ok) {
+    const jugadores = await res.json();
+    const select = document.getElementById('asis_jugador');
+    select.innerHTML = '<option value="">Seleccione un jugador</option>' + 
+      jugadores.map(j => `<option value="${j.id}">${j.nombre}</option>`).join('');
+  }
+}
+
+async function cargarAsistencias() {
+  const claseId = document.getElementById('asis_clase').value;
+  const mes = document.getElementById('asis_mes').value;
+  const estadoFiltro = document.getElementById('asis_filtro_estado').value;
+
+  if (!claseId) {
+    document.getElementById('lista-asistencias').innerHTML = '<p style="text-align:center; color:#777;">Selecciona una clase para ver la asistencia.</p>';
+    document.getElementById('resumen-asistencias').innerHTML = '';
+    return;
+  }
+
+  const res = await fetch(`${API}/clases/${claseId}/asistencia`, { headers: headers() });
+  const data = await res.json();
+
+  // 1. Filtrar por mes y estado
+  const filtrados = data.filter(a => {
+    let coincideMes = true;
+    if (mes !== 'todos') {
+      const fechaA = new Date(a.fecha);
+      coincideMes = fechaA.getMonth() === parseInt(mes);
+    }
+
+    let coincideEstado = true;
+    if (estadoFiltro !== 'todos') {
+      coincideEstado = (a.presente === parseInt(estadoFiltro));
+    }
+
+    return coincideMes && coincideEstado;
+  });
+
+  // 2. Calcular Resumen
+  let presentes = 0;
+  let faltas = 0;
+  filtrados.forEach(a => a.presente ? presentes++ : faltas++);
+  
+  document.getElementById('resumen-asistencias').innerHTML = `
+    Mostrando: <span style="color: #2ecc71;">${presentes} Presentes</span> | 
+    <span style="color: #e74c3c;">${faltas} Faltas</span> (Total: ${filtrados.length} registros)
+  `;
+
+  // 3. Dibujar lista
+  if (filtrados.length === 0) {
+    document.getElementById('lista-asistencias').innerHTML = '<p style="text-align:center; color:#777;">No hay registros con estos filtros.</p>';
+    return;
+  }
+
+  document.getElementById('lista-asistencias').innerHTML = filtrados.map(a => {
+    const estadoHtml = a.presente 
+      ? '<span style="color: #2ecc71; font-weight:bold;">✅ Presente</span>' 
+      : '<span style="color: #e74c3c; font-weight:bold;">❌ Falta</span>';
+      
+    return `
+    <div class="row">
+      <span><strong>${a.fecha.split('T')[0]}</strong> - ${a.jugador}</span>
+      <div style="display:flex; gap: 10px; align-items:center;">
+        ${estadoHtml}
+        <!-- BOTONES NUEVOS -->
+        <button onclick="editarAsistencia(${a.id}, ${a.presente})" style="background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Cambiar estado">✏️</button>
+        <button onclick="eliminarAsistencia(${a.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Eliminar registro">❌</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function marcarAsistencia() {
+  const claseId = document.getElementById('asis_clase').value;
+  const jugadorId = document.getElementById('asis_jugador').value;
+  const fecha = document.getElementById('asis_fecha').value;
+  const presente = parseInt(document.getElementById('asis_estado').value);
+
+  if (!claseId || !jugadorId || !fecha) {
+    alert('Por favor, selecciona la clase, el jugador y la fecha.');
+    return;
+  }
+
+  const res = await fetch(`${API}/clases/${claseId}/asistencia`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({
+      jugador_id: jugadorId,
+      presente: presente,
+      observacion: 'Registrado desde el panel'
+    })
+  });
+
+  if (res.ok) {
+    alert('Asistencia guardada correctamente');
+    document.getElementById('asis_fecha').value = '';
+    cargarAsistencias(); // Recargar la lista
+  } else {
+    alert('Error al guardar la asistencia');
+  }
+}
+
+async function descargarPDFAsistencias() {
+  const claseId = document.getElementById('asis_clase').value;
+  const mes = document.getElementById('asis_mes').value;
+  const estadoFiltro = document.getElementById('asis_filtro_estado').value;
+
+  if (!claseId) {
+    alert('Por favor, selecciona una clase primero.');
+    return;
+  }
+
+  const res = await fetch(`${API}/clases/${claseId}/asistencia`, { headers: headers() });
+  const data = await res.json();
+
+  // Filtramos los datos igual que en la pantalla
+  const filtrados = data.filter(a => {
+    let coincideMes = true;
+    if (mes !== 'todos') {
+      const fechaA = new Date(a.fecha);
+      coincideMes = fechaA.getMonth() === parseInt(mes);
+    }
+    let coincideEstado = true;
+    if (estadoFiltro !== 'todos') {
+      coincideEstado = (a.presente === parseInt(estadoFiltro));
+    }
+    return coincideMes && coincideEstado;
+  });
+
+  if (filtrados.length === 0) {
+    alert('No hay registros para exportar con estos filtros.');
+    return;
+  }
+
+  // Nombre de la clase para el título
+  const selectClase = document.getElementById('asis_clase');
+  const nombreClase = selectClase.options[selectClase.selectedIndex].text;
+
+  const ventana = window.open('', '_blank');
+  
+  let html = `
+    <html>
+    <head>
+      <title>Reporte de Asistencias - Club Vóley</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h1 { color: #1f4e79; text-align: center; }
+        .info { text-align: center; margin-bottom: 20px; color: #555; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+        th { background-color: #1f4e79; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .presente { color: #27ae60; font-weight: bold; }
+        .falta { color: #e74c3c; font-weight: bold; }
+      </style>
+    </head>
+    <body>
+      <h1>✅ Reporte de Asistencias</h1>
+      <div class="info">
+        <strong>Clase:</strong> ${nombreClase} <br>
+        <strong>Generado el:</strong> ${new Date().toLocaleDateString('es-PE')}
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Jugador</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  filtrados.forEach(a => {
+    html += `
+      <tr>
+        <td>${a.fecha.split('T')[0]}</td>
+        <td>${a.jugador}</td>
+        <td class="${a.presente ? 'presente' : 'falta'}">
+          ${a.presente ? 'PRESENTE' : 'FALTA'}
+        </td>
+      </tr>
+    `;
+  });
+
+  html += `
+        </tbody>
+      </table>
+      <script>
+        window.onload = function() { window.print(); }
+      </script>
+    </body>
+    </html>
+  `;
+
+  ventana.document.write(html);
+  ventana.document.close();
+}
+
+// ---------- EXPEDIENTE DEL ALUMNO ----------
+async function cargarSelectJugadoresExpediente() {
+  const res = await fetch(`${API}/usuarios/jugadores`, { headers: headers() });
+  if (res.ok) {
+    const jugadores = await res.json();
+    const select = document.getElementById('exp_jugador');
+    select.innerHTML = '<option value="">Seleccione un alumno</option>' + 
+      jugadores.map(j => `<option value="${j.id}">${j.nombre}</option>`).join('');
+  }
+}
+
+async function cargarExpediente() {
+  const jugadorId = document.getElementById('exp_jugador').value;
+  const claseId = document.getElementById('exp_clase').value;
+  const mesFiltro = document.getElementById('exp_mes').value;
+  const anioFiltro = document.getElementById('exp_anio').value;
+
+  if (!jugadorId) {
+    document.getElementById('contenido-expediente').classList.add('oculto');
+    return;
+  }
+  document.getElementById('contenido-expediente').classList.remove('oculto');
+
+  // 1. Cargar Pagos (Filtrados por Mes y Año)
+  const resPagos = await fetch(`${API}/pagos`, { headers: headers() });
+  const pagos = await resPagos.json();
+  
+  let pagosJugador = pagos.filter(p => p.jugador_id == jugadorId);
+  
+  // Filtro de tiempo para pagos
+  if (mesFiltro !== 'todos' || anioFiltro !== 'todos') {
+    pagosJugador = pagosJugador.filter(p => {
+      if (!p.fecha_inicio) return false;
+      const f = new Date(p.fecha_inicio);
+      const coincideMes = mesFiltro === 'todos' || f.getMonth() === parseInt(mesFiltro);
+      const coincideAnio = anioFiltro === 'todos' || f.getFullYear() === parseInt(anioFiltro);
+      return coincideMes && coincideAnio;
+    });
+  }
+
+  let htmlPagos = '';
+  let deudaTotal = 0;
+  let hoy = new Date();
+
+  if (pagosJugador.length === 0) {
+    htmlPagos = '<p>No hay pagos en este periodo.</p>';
+  } else {
+    htmlPagos = '<ul style="list-style: none; padding: 0;">';
+    pagosJugador.forEach(p => {
+      let estadoHtml = '';
+      if (p.estado === 'pendiente') {
+        deudaTotal += parseFloat(p.monto);
+        const fechaVenc = new Date(p.fecha_vencimiento);
+        if (fechaVenc < hoy) {
+          const diasMora = Math.floor((hoy - fechaVenc) / (1000 * 60 * 60 * 24));
+          estadoHtml = `<span style="color: #e74c3c; font-weight: bold;">⚠️ Vencido hace ${diasMora} días</span>`;
+        } else {
+          estadoHtml = `<span style="color: #f39c12; font-weight: bold;">⏳ Pendiente (Vence: ${p.fecha_vencimiento.split('T')[0]})</span>`;
+        }
+      } else if (p.estado === 'pagado') {
+        estadoHtml = `<span style="color: #2ecc71; font-weight: bold;">✅ Pagado</span>`;
+      }
+      htmlPagos += `<li style="margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;"><strong>${p.concepto}</strong> - S/ ${p.monto} <br>${estadoHtml}</li>`;
+    });
+    htmlPagos += '</ul>';
+  }
+  
+  if (deudaTotal > 0) {
+    htmlPagos = `<div style="background: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin-bottom: 15px;"><strong>Deuda Total en este periodo: S/ ${deudaTotal.toFixed(2)}</strong></div>` + htmlPagos;
+  }
+  document.getElementById('exp_pagos').innerHTML = htmlPagos;
+
+  // 2. Cargar Asistencias (Filtradas por Clase, Mes y Año)
+  const resClases = await fetch(`${API}/clases`, { headers: headers() });
+  let clases = await resClases.json();
+  
+  if (claseId !== 'todas') {
+    clases = clases.filter(c => c.id == claseId);
+  }
+
+  let totalAsistencias = 0;
+  let totalFaltas = 0;
+  const nombreJugador = document.getElementById('exp_jugador').options[document.getElementById('exp_jugador').selectedIndex].text;
+
+  for (const c of clases) {
+    const resAsis = await fetch(`${API}/clases/${c.id}/asistencia`, { headers: headers() });
+    if (resAsis.ok) {
+      let asis = await resAsis.json();
+      
+      // Filtro de fecha para asistencias
+      asis = asis.filter(a => {
+        const f = new Date(a.fecha);
+        const coincideMes = mesFiltro === 'todos' || f.getMonth() === parseInt(mesFiltro);
+        const coincideAnio = anioFiltro === 'todos' || f.getFullYear() === parseInt(anioFiltro);
+        return coincideMes && coincideAnio;
+      });
+
+      asis.forEach(a => {
+        if (a.jugador === nombreJugador) {
+          if (a.presente === 1) totalAsistencias++;
+          else totalFaltas++;
+        }
+      });
+    }
+  }
+
+  document.getElementById('exp_asistencia').innerHTML = `
+    <div style="display: flex; gap: 15px;">
+      <div style="background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; text-align: center; flex: 1;">
+        <h4 style="margin: 0;">Presente</h4>
+        <h2 style="margin: 10px 0 0 0;">${totalAsistencias}</h2>
+      </div>
+      <div style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; text-align: center; flex: 1;">
+        <h4 style="margin: 0;">Faltas</h4>
+        <h2 style="margin: 10px 0 0 0;">${totalFaltas}</h2>
+      </div>
+    </div>
+  `;
+
+  // 3. Cargar Evaluaciones Técnicas (Filtradas por Mes y Año)
+  const resEval = await fetch(`${API}/evaluaciones/jugador/${jugadorId}`, { headers: headers() });
+  if (resEval.ok) {
+    let evaluaciones = await resEval.json();
+    
+    // Filtro de fecha para evaluaciones
+    evaluaciones = evaluaciones.filter(ev => {
+      const f = new Date(ev.fecha);
+      const coincideMes = mesFiltro === 'todos' || f.getMonth() === parseInt(mesFiltro);
+      const coincideAnio = anioFiltro === 'todos' || f.getFullYear() === parseInt(anioFiltro);
+      return coincideMes && coincideAnio;
+    });
+
+    if (evaluaciones.length === 0) {
+      document.getElementById('exp_evaluaciones').innerHTML = '<p>No hay evaluaciones en este periodo.</p>';
+    } else {
+      let htmlEval = '<ul style="list-style: none; padding: 0;">';
+      evaluaciones.forEach(ev => {
+        htmlEval += `
+          <li style="margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <strong>Fecha: ${ev.fecha.split('T')[0]}</strong>
+              <!-- BOTÓN ELIMINAR -->
+              <button onclick="eliminarEvaluacion(${ev.id})" style="background: #e74c3c; color: white; border: none; padding: 2px 6px; border-radius: 4px; cursor: pointer;" title="Eliminar evaluación">❌</button>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 5px;">
+              <span>Saque: ${ev.saque || '-'}/10</span>
+              <span>Recepción: ${ev.recepcion || '-'}/10</span>
+              <span>Ataque: ${ev.ataque || '-'}/10</span>
+              <span>Bloqueo: ${ev.bloqueo || '-'}/10</span>
+              <span>Defensa: ${ev.defensa || '-'}/10</span>
+            </div>
+            <span style="font-size: 0.9em; color: #666;"><em>${ev.comentario || ''}</em></span>
+          </li>
+        `;
+      });
+      htmlEval += '</ul>';
+      document.getElementById('exp_evaluaciones').innerHTML = htmlEval;
+    }
+  }
+}
+
+async function crearEvaluacion() {
+  const jugador_id = document.getElementById('eval_jugador').value;
+  const fecha = document.getElementById('eval_fecha').value;
+  const saque = document.getElementById('eval_saque').value;
+  const recepcion = document.getElementById('eval_recepcion').value;
+  const ataque = document.getElementById('eval_ataque').value;
+  const bloqueo = document.getElementById('eval_bloqueo').value;
+  const defensa = document.getElementById('eval_defensa').value;
+  const comentario = document.getElementById('eval_comentario').value;
+
+  if (!jugador_id || !fecha) {
+    alert('Selecciona un alumno y una fecha');
+    return;
+  }
+
+  const res = await fetch(`${API}/evaluaciones`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({
+      jugador_id, fecha, saque, recepcion, ataque, bloqueo, defensa, comentario
+    })
+  });
+
+  if (res.ok) {
+    alert('Evaluación guardada correctamente');
+    // Limpiar campos
+    document.getElementById('eval_fecha').value = '';
+    document.getElementById('eval_saque').value = '';
+    document.getElementById('eval_recepcion').value = '';
+    document.getElementById('eval_ataque').value = '';
+    document.getElementById('eval_bloqueo').value = '';
+    document.getElementById('eval_defensa').value = '';
+    document.getElementById('eval_comentario').value = '';
+  } else {
+    alert('Error al guardar evaluación');
+  }
+}
+
+// Función para dibujar la lista de todos los alumnos de la clase seleccionada
+async function cargarListaAlumnos() {
+  const claseId = document.getElementById('asis_clase').value;
+  const fecha = document.getElementById('asis_fecha_rapida').value;
+
+  if (!claseId || !fecha) {
+    alert('Por favor, selecciona una clase y una fecha primero.');
+    return;
+  }
+
+  // 1. Obtenemos el nombre de la clase seleccionada para buscar coincidencias
+  const selectClase = document.getElementById('asis_clase');
+  const nombreClase = selectClase.options[selectClase.selectedIndex].text.split(' (')[0]; // Quitamos el día
+
+  // 2. Obtenemos todos los pagos para saber qué alumnos están inscritos en esta clase
+  const resPagos = await fetch(`${API}/pagos`, { headers: headers() });
+  const pagos = await resPagos.json();
+
+  // 3. Filtramos los IDs de los jugadores que tienen un pago con el nombre de esta clase
+  const idsAlumnosInscritos = [...new Set(
+    pagos
+      .filter(p => p.concepto && p.concepto.includes(nombreClase))
+      .map(p => p.jugador_id)
+  )];
+
+  if (idsAlumnosInscritos.length === 0) {
+    document.getElementById('lista-alumnos-asistencia').innerHTML = '<p style="text-align:center; color:#777; padding: 20px;">No hay alumnos inscritos en esta clase (no se encontraron pagos).</p>';
+    return;
+  }
+
+  // 4. Obtenemos los datos de los jugadores y sus asistencias previas
+  const resJugadores = await fetch(`${API}/usuarios/jugadores`, { headers: headers() });
+  const todosJugadores = await resJugadores.json();
+  
+  // Filtramos los jugadores que sí están inscritos
+  const jugadoresInscritos = todosJugadores.filter(j => idsAlumnosInscritos.includes(j.id));
+
+  const resAsis = await fetch(`${API}/clases/${claseId}/asistencia`, { headers: headers() });
+  const asistenciasGuardadas = await resAsis.json();
+
+  // 5. Dibujamos la lista
+  let html = '';
+  jugadoresInscritos.forEach(j => {
+    // Verificamos si este jugador ya tiene asistencia marcada en esta fecha
+    const registro = asistenciasGuardadas.find(a => 
+      a.jugador === j.nombre && a.fecha.startsWith(fecha)
+    );
+    
+    let estadoActual = '';
+    if (registro) {
+      estadoActual = registro.presente ? '✅ Presente' : '❌ Falta';
+    } else {
+      estadoActual = '⏳ Sin registrar';
+    }
+
+    html += `
+      <div class="row" style="padding: 10px; border-bottom: 1px solid #eee;">
+        <span><strong>${j.nombre}</strong> - <em>${estadoActual}</em></span>
+        <div style="display:flex; gap: 5px;">
+          <button onclick="guardarAsistenciaRapida(${claseId}, ${j.id}, '${fecha}', 1)" style="background: #2ecc71; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Presente</button>
+          <button onclick="guardarAsistenciaRapida(${claseId}, ${j.id}, '${fecha}', 0)" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Falta</button>
+        </div>
+      </div>
+    `;
+  });
+
+  document.getElementById('lista-alumnos-asistencia').innerHTML = html;
+}
+
+// Función para guardar un solo clic
+async function guardarAsistenciaRapida(claseId, jugadorId, fecha, presente) {
+  const res = await fetch(`${API}/clases/${claseId}/asistencia`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({
+      jugador_id: jugadorId,
+      fecha: fecha, // Enviamos la fecha explícitamente
+      presente: presente,
+      observacion: 'Asistencia rápida'
+    })
+  });
+
+  if (res.ok) {
+    // Recargamos la lista y el historial para que se vea el cambio
+    cargarListaAlumnos();
+    cargarAsistencias();
+  } else {
+    alert('Error al guardar. Verifica si la fecha es correcta.');
+  }
+}
+
+async function cargarSelectClasesExpediente() {
+  const res = await fetch(`${API}/clases`, { headers: headers() });
+  if (res.ok) {
+    const clases = await res.json();
+    const select = document.getElementById('exp_clase');
+    select.innerHTML = '<option value="todas">Todas las clases</option>' + 
+      clases.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+  }
+}
+
+// Función para eliminar la asistencia
+async function eliminarAsistencia(id) {
+  if (!confirm('¿Estás seguro de eliminar este registro de asistencia?')) return;
+
+  const res = await fetch(`${API}/clases/asistencia/${id}`, {
+    method: 'DELETE',
+    headers: headers()
+  });
+
+  if (res.ok) {
+    cargarAsistencias(); // Recargar historial
+  } else {
+    alert('Error al eliminar la asistencia');
+  }
+}
+
+// Función para editar (cambiar de presente a falta)
+async function editarAsistencia(id, estadoActual) {
+  const nuevoEstado = estadoActual === 1 ? 0 : 1; // Si era 1 pasa a 0, si era 0 pasa a 1
+  
+  const res = await fetch(`${API}/clases/asistencia/${id}`, {
+    method: 'PUT',
+    headers: headers(),
+    body: JSON.stringify({ presente: nuevoEstado })
+  });
+
+  if (res.ok) {
+    cargarAsistencias(); // Recargar historial
+  } else {
+    alert('Error al actualizar la asistencia');
+  }
+}
+
+// Función para eliminar una evaluación técnica
+async function eliminarEvaluacion(id) {
+  if (!confirm('⚠️ ¿Estás seguro de eliminar esta evaluación? Esta acción no se puede deshacer.')) return;
+
+  const res = await fetch(`${API}/evaluaciones/${id}`, {
+    method: 'DELETE',
+    headers: headers()
+  });
+
+  if (res.ok) {
+    // Recargamos el expediente para que desaparezca de la lista
+    cargarExpediente(); 
+  } else {
+    alert('Error al eliminar la evaluación');
+  }
+}
+
+// ---------- FAMILIAS ----------
+async function cargarSelectFamilias() {
+  const resPadres = await fetch(`${API}/usuarios`, { headers: headers() });
+  if (resPadres.ok) {
+    const usuarios = await resPadres.json();
+    const padres = usuarios.filter(u => u.rol === 'padre');
+    
+    const select = document.getElementById('fam_tutor');
+    select.innerHTML = '<option value="">Seleccione Apoderado</option>' + 
+      padres.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
+      
+    // Si hay al menos un padre, seleccionamos el primero por defecto y cargamos sus hijos
+    if (padres.length > 0) {
+      select.value = padres[0].id;
+      cargarFamiliaSeleccionada();
+    } else {
+      document.getElementById('detalle-familia').innerHTML = '<p style="color: #777;">No hay apoderados registrados.</p>';
+    }
+  }
+}
+
+// Función para crear al hijo y vincularlo automáticamente al padre
+async function registrarHijo() {
+  const tutor_id = document.getElementById('fam_tutor').value;
+  const nombre = document.getElementById('fam_hijo_nombre').value;
+  const telefono = document.getElementById('fam_hijo_tel').value;
+
+  if (!tutor_id) {
+    alert('Por favor, primero selecciona al apoderado en el paso 1.');
+    return;
+  }
+
+  if (!nombre) {
+    alert('Por favor, ingresa el nombre del hijo.');
+    return;
+  }
+
+  const res = await fetch(`${API}/usuarios/hijo`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ nombre, telefono, tutor_id })
+  });
+
+  const data = await res.json();
+
+  if (data.error) {
+    alert('Error al crear al hijo: ' + data.error);
+  } else {
+    alert('✅ Hijo registrado y vinculado exitosamente.');
+    
+    // LIMPIAMOS LAS CAJAS DE TEXTO
+    document.getElementById('fam_hijo_nombre').value = '';
+    document.getElementById('fam_hijo_tel').value = '';
+    
+    // RECARGAMOS EL DETALLE PARA QUE APAREZCA EL HIJO A LA DERECHA
+    cargarFamiliaSeleccionada(); 
+  }
+}
+
+// Función para mostrar el padre y sus hijos (Vista 360 de la familia)
+async function cargarFamiliaSeleccionada() {
+  const tutor_id = document.getElementById('fam_tutor').value;
+  if (!tutor_id) {
+    document.getElementById('detalle-familia').innerHTML = '<p style="color: #777;">Seleccione un apoderado para ver a sus hijos.</p>';
+    return;
+  }
+
+  const resUsers = await fetch(`${API}/usuarios`, { headers: headers() });
+  const usuarios = await resUsers.json();
+  const padre = usuarios.find(u => u.id == tutor_id);
+
+  const resHijos = await fetch(`${API}/usuarios/hijos/${tutor_id}`, { headers: headers() });
+  const hijos = await resHijos.json();
+
+  let html = `
+    <div style="background: #eaf2fb; padding: 10px; border-radius: 6px; margin-bottom: 15px;">
+      <h4 style="margin: 0;">Apoderado: ${padre.nombre}</h4>
+      <p style="margin: 5px 0; font-size: 0.9em;">📧 ${padre.email} | 📱 ${padre.telefono || 'Sin teléfono'} | 📄 ${padre.dni || 'Sin doc.'}</p>
+    </div>
+    <h4>Hijos a cargo (${hijos.length})</h4>
+  `;
+
+  if (hijos.length === 0) {
+    html += '<p style="color: #777;">Este apoderado aún no tiene hijos registrados.</p>';
+  } else {
+    html += '<ul style="list-style: none; padding: 0;">';
+    hijos.forEach(h => {
+      html += `
+        <li style="padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+          <strong>${h.nombre_completo}</strong>
+          <span style="font-size: 0.8em; color: #3498db; cursor: pointer;" onclick="mostrar('expediente'); document.getElementById('exp_jugador').value=${h.id}; cargarExpediente();">Ver Expediente 👉</span>
+        </li>
+      `;
+    });
+    html += '</ul>';
+  }
+
+  document.getElementById('detalle-familia').innerHTML = html;
+}
+
+// Función para Editar Usuario (que me pediste en la captura)
+async function editarUsuario(id) {
+  const res = await fetch(`${API}/usuarios`, { headers: headers() });
+  const data = await res.json();
+  const u = data.find(user => user.id === id);
+  if (!u) return;
+
+  const nombre = prompt('Nuevo nombre:', u.nombre);
+  const email = prompt('Nuevo email:', u.email);
+  const telefono = prompt('Nuevo teléfono:', u.telefono || '');
+  const direccion = prompt('Nueva dirección:', u.direccion || '');
+
+  if (nombre === null) return;
+
+  // Nota: Para que esto funcione, debes crear la ruta PUT /:id/editar en routes/usuarios.js
+  const updateRes = await fetch(`${API}/usuarios/${id}/editar`, {
+    method: 'PUT',
+    headers: headers(),
+    body: JSON.stringify({ nombre, email, telefono, direccion })
+  });
+
+  if (updateRes.ok) {
+    cargarUsuarios();
+  } else {
+    alert('Error al editar');
+  }
+}
+
+async function forzarEliminarCorreo() {
+  const correo = prompt("Escribe el correo bloqueado para eliminarlo (ej: juancosme@bcp.com.pe):");
+  if (!correo) return;
+
+  const confirmar = confirm(`¿Estás seguro de eliminar a ${correo} de la base de datos?`);
+  if (!confirmar) return;
+
+  // Buscamos a TODOS los usuarios (activos e inactivos)
+  const res = await fetch(`${API}/usuarios`, { headers: headers() });
+  const data = await res.json();
+
+  // Buscamos el usuario que tenga ese correo exacto
+  const usuario = data.find(u => u.email.toLowerCase() === correo.toLowerCase());
+
+  if (!usuario) {
+    alert('No se encontró ningún usuario con ese correo.');
+    return;
+  }
+
+  // Lo eliminamos
+  const deleteRes = await fetch(`${API}/usuarios/${usuario.id}`, {
+    method: 'DELETE',
+    headers: headers()
+  });
+
+  if (deleteRes.ok) {
+    alert(`✅ Usuario ${correo} eliminado correctamente. Ya puedes crearlo de nuevo.`);
+    cargarUsuarios(); // Recargar la lista
+  } else {
+    alert('Error al eliminar. Es posible que el usuario tenga pagos o asistencias registradas (Fallo de clave foránea).');
+  }
+}
+
+async function descargarPDFFamilia() {
+  const tutor_id = document.getElementById('fam_tutor').value;
+  if (!tutor_id) {
+    alert('Selecciona un apoderado primero.');
+    return;
+  }
+
+  const resUsers = await fetch(`${API}/usuarios`, { headers: headers() });
+  const usuarios = await resUsers.json();
+  const padre = usuarios.find(u => u.id == tutor_id);
+
+  const resHijos = await fetch(`${API}/usuarios/hijos/${tutor_id}`, { headers: headers() });
+  const hijos = await resHijos.json();
+
+  const ventana = window.open('', '_blank');
+  
+  let html = `
+    <html>
+    <head>
+      <title>Reporte Familiar - ${padre.nombre}</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h1 { color: #1f4e79; text-align: center; }
+        .info { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #1f4e79; color: white; }
+      </style>
+    </head>
+    <body>
+      <h1>🏐 Reporte de Familia</h1>
+      <div class="info">
+        <h2>Apoderado: ${padre.nombre}</h2>
+        <p><strong>Email:</strong> ${padre.email} | <strong>Teléfono:</strong> ${padre.telefono || 'N/A'}</p>
+        <p><strong>Dirección:</strong> ${padre.direccion || 'N/A'} | <strong>Documento:</strong> ${padre.dni || 'N/A'}</p>
+      </div>
+
+      <h3>Hijos registrados en el club (${hijos.length})</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Nombre del Alumno</th>
+            <th>Teléfono</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  hijos.forEach((h, index) => {
+    html += `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${h.nombre_completo}</td>
+        <td>${h.telefono || 'N/A'}</td>
+      </tr>
+    `;
+  });
+
+  html += `
+        </tbody>
+      </table>
+      <script>window.onload = function() { window.print(); }</script>
+    </body>
+    </html>
+  `;
+
+  ventana.document.write(html);
+  ventana.document.close();
+  }
