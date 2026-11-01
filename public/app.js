@@ -292,7 +292,11 @@ async function editarPago(id) {
 
 async function crearPago() {
   const jugador_id = document.getElementById('pago_jugador').value;
-  const concepto = document.getElementById('pago_concepto').value;
+  const conceptoInput = document.getElementById('pago_concepto');
+  
+  // Si el usuario seleccionó una sugerencia del datalist, tomamos el texto exacto
+  const concepto = conceptoInput.value; 
+  
   const monto = document.getElementById('pago_monto').value;
   const fechaInicioVal = document.getElementById('pago_fecha_inicio').value;
   const duracion = parseInt(document.getElementById('pago_duracion').value);
@@ -320,7 +324,7 @@ async function crearPago() {
     method: 'POST', headers: headers(),
     body: JSON.stringify({
       jugador_id: jugador_id,
-      concepto: concepto,
+      concepto: concepto, // Se guarda el texto completo (incluyendo el horario si lo elegiste)
       monto: monto,
       fecha_inicio: fechaInicioVal,
       fecha_vencimiento: fechaFinString
@@ -696,21 +700,24 @@ async function eliminarUsuario(id) {
 
 // ---------- SELECT DE JUGADORES PARA PAGOS ----------
 async function cargarSelectJugadores() {
-  const res = await fetch(`${API}/usuarios/jugadores`, { headers: headers() });
-  
-  if (res.ok) {
-    const jugadores = await res.json();
-    const select = document.getElementById('pago_jugador');
-    
-    if (jugadores.length === 0) {
-      select.innerHTML = '<option value="">No hay jugadores registrados</option>';
-      return;
+  try {
+    const res = await fetch(`${API}/usuarios/jugadores`, { headers: headers() });
+    if (res.ok) {
+      const jugadores = await res.json();
+      const select = document.getElementById('pago_jugador');
+      
+      if (jugadores.length === 0) {
+        select.innerHTML = '<option value="">No hay jugadores registrados</option>';
+        return;
+      }
+      
+      select.innerHTML = '<option value="">Seleccione un jugador</option>' + 
+        jugadores.map(j => `<option value="${j.id}">${j.nombre}</option>`).join('');
+    } else {
+      document.getElementById('pago_jugador').innerHTML = '<option value="">Error al cargar</option>';
     }
-    
-    select.innerHTML = '<option value="">Seleccione un jugador</option>' + 
-      jugadores.map(j => `<option value="${j.id}">${j.nombre}</option>`).join('');
-  } else {
-    document.getElementById('pago_jugador').innerHTML = '<option value="">Error al cargar</option>';
+  } catch (error) {
+    console.error("Error cargando jugadores:", error);
   }
 }
 
