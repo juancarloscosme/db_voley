@@ -1582,8 +1582,6 @@ async function cargarSelectFamilias() {
 async function registrarHijo() {
   const tutor_id = document.getElementById('fam_tutor').value;
   const nombre = document.getElementById('fam_hijo_nombre').value;
-  const email = document.getElementById('fam_hijo_email').value;
-  const password = document.getElementById('fam_hijo_pass').value;
   const telefono = document.getElementById('fam_hijo_tel').value;
 
   if (!tutor_id) {
@@ -1591,16 +1589,15 @@ async function registrarHijo() {
     return;
   }
 
-  if (!nombre || !email || !password) {
-    alert('Por favor, llena el nombre, correo y contraseña del hijo.');
+  if (!nombre) {
+    alert('Por favor, ingresa el nombre del hijo.');
     return;
   }
 
-  // 1. Registramos al hijo como usuario con rol "jugador"
-  const res = await fetch(`${API}/auth/registro`, {
+  const res = await fetch(`${API}/usuarios/hijo`, {
     method: 'POST',
     headers: headers(),
-    body: JSON.stringify({ nombre, email, password, rol: 'jugador', telefono, direccion: '' })
+    body: JSON.stringify({ nombre, telefono, tutor_id })
   });
 
   const data = await res.json();
@@ -1608,30 +1605,10 @@ async function registrarHijo() {
   if (data.error) {
     alert('Error al crear al hijo: ' + data.error);
   } else {
-    // 2. Una vez creado, lo vinculamos al padre usando la ruta que creamos
-    // data.id es el ID del nuevo usuario. Buscamos su perfil de jugador.
-    
-    // NOTA: Como en la tabla 'jugadores' se crea automáticamente el perfil, 
-    // necesitamos obtener el ID de ese perfil para actualizar el tutor.
-    const resJugadores = await fetch(`${API}/usuarios/jugadores`, { headers: headers() });
-    const jugadores = await resJugadores.json();
-    const nuevoJugador = jugadores.find(j => j.nombre === nombre);
-
-    if (nuevoJugador) {
-      await fetch(`${API}/usuarios/${nuevoJugador.id}/tutor`, {
-        method: 'PUT',
-        headers: headers(),
-        body: JSON.stringify({ tutor_id: tutor_id })
-      });
-      
-      alert('✅ Hijo registrado y vinculado exitosamente.');
-      document.getElementById('fam_hijo_nombre').value = '';
-      document.getElementById('fam_hijo_email').value = '';
-      document.getElementById('fam_hijo_pass').value = '';
-      document.getElementById('fam_hijo_tel').value = '';
-      
-      cargarFamiliaSeleccionada(); // Recargar la vista para que aparezca
-    }
+    alert('✅ Hijo registrado y vinculado exitosamente.');
+    document.getElementById('fam_hijo_nombre').value = '';
+    document.getElementById('fam_hijo_tel').value = '';
+    cargarFamiliaSeleccionada(); // Recargar la vista
   }
 }
 
@@ -1647,16 +1624,13 @@ async function cargarFamiliaSeleccionada() {
   const usuarios = await resUsers.json();
   const padre = usuarios.find(u => u.id == tutor_id);
 
-  const resJugadores = await fetch(`${API}/usuarios/jugadores`, { headers: headers() });
-  const todosJugadores = await resJugadores.json();
-
-  // Filtramos SOLO los jugadores que tienen el tutor_id de este padre
-  const hijos = todosJugadores.filter(j => j.tutor_id == tutor_id);
+  const resHijos = await fetch(`${API}/usuarios/hijos/${tutor_id}`, { headers: headers() });
+  const hijos = await resHijos.json();
 
   let html = `
     <div style="background: #eaf2fb; padding: 10px; border-radius: 6px; margin-bottom: 15px;">
       <h4 style="margin: 0;">Apoderado: ${padre.nombre}</h4>
-      <p style="margin: 5px 0; font-size: 0.9em;">📧 ${padre.email} | 📱 ${padre.telefono || 'Sin teléfono'}</p>
+      <p style="margin: 5px 0; font-size: 0.9em;">📧 ${padre.email} | 📱 ${padre.telefono || 'Sin teléfono'} | 📄 ${padre.dni || 'Sin doc.'}</p>
     </div>
     <h4>Hijos a cargo (${hijos.length})</h4>
   `;
@@ -1668,7 +1642,7 @@ async function cargarFamiliaSeleccionada() {
     hijos.forEach(h => {
       html += `
         <li style="padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
-          <strong>${h.nombre}</strong>
+          <strong>${h.nombre_completo}</strong>
           <span style="font-size: 0.8em; color: #3498db; cursor: pointer;" onclick="mostrar('expediente'); document.getElementById('exp_jugador').value=${h.id}; cargarExpediente();">Ver Expediente 👉</span>
         </li>
       `;
@@ -1738,4 +1712,75 @@ async function forzarEliminarCorreo() {
   } else {
     alert('Error al eliminar. Es posible que el usuario tenga pagos o asistencias registradas (Fallo de clave foránea).');
   }
+}
+
+async function descargarPDFFamilia() {
+  const tutor_id = document.getElementById('fam_tutor').value;
+  if (!tutor_id) {
+    alert('Selecciona un apoderado primero.');
+    return;
+  }
+
+  const resUsers = await fetch(`${API}/usuarios`, { headers: headers() });
+  const usuarios = await resUsers.json();
+  const padre = usuarios.find(u => u.id == tutor_id);
+
+  const resHijos = await fetch(`${API}/usuarios/hijos/${tutor_id}`, { headers: headers() });
+  const hijos = await resHijos.json();
+
+  const ventana = window.open('', '_blank');
+  
+  let html = `
+    <html>
+    <head>
+      <title>Reporte Familiar - ${padre.nombre}</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h1 { color: #1f4e79; text-align: center; }
+        .info { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #1f4e79; color: white; }
+      </style>
+    </head>
+    <body>
+      <h1>🏐 Reporte de Familia</h1>
+      <div class="info">
+        <h2>Apoderado: ${padre.nombre}</h2>
+        <p><strong>Email:</strong> ${padre.email} | <strong>Teléfono:</strong> ${padre.telefono || 'N/A'}</p>
+        <p><strong>Dirección:</strong> ${padre.direccion || 'N/A'} | <strong>Documento:</strong> ${padre.dni || 'N/A'}</p>
+      </div>
+
+      <h3>Hijos registrados en el club (${hijos.length})</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Nombre del Alumno</th>
+            <th>Teléfono</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  hijos.forEach((h, index) => {
+    html += `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${h.nombre_completo}</td>
+        <td>${h.telefono || 'N/A'}</td>
+      </tr>
+    `;
+  });
+
+  html += `
+        </tbody>
+      </table>
+      <script>window.onload = function() { window.print(); }</script>
+    </body>
+    </html>
+  `;
+
+  ventana.document.write(html);
+  ventana.document.close();
 }

@@ -119,6 +119,21 @@ router.put('/:id/editar', permitirRoles('admin'), async (req, res) => {
   }
 });
 
-
+// Ruta para crear un jugador (hijo) sin usuario de login
+router.post('/hijo', permitirRoles('admin', 'entrenador'), async (req, res) => {
+  try {
+    const { nombre, telefono, tutor_id } = req.body;
+    
+    // Creamos el registro del jugador directamente
+    const [result] = await pool.query(
+      `INSERT INTO jugadores (nombre_completo, telefono, tutor_id) VALUES (?, ?, ?)`,
+      [nombre, telefono || null, tutor_id]
+    );
+    
+    res.json({ mensaje: 'Hijo registrado correctamente', id: result.insertId });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 module.exports = router;
