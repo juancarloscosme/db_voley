@@ -263,11 +263,21 @@
     <section id="expediente" class="seccion oculto">
       <h2>📋 Expediente del Alumno</h2>
       
-      <div style="margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ddd;">
-        <label><strong>Seleccione un jugador: </strong></label>
-        <select id="exp_jugador" onchange="cargarExpediente()" style="width: 250px;">
-          <option value="">Cargando alumnos...</option>
-        </select>
+      <div style="margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ddd; display: flex; gap: 15px; flex-wrap: wrap;">
+        <div>
+          <label><strong>Seleccione un jugador: </strong></label>
+          <select id="exp_jugador" onchange="cargarExpediente()" style="width: 250px;">
+            <option value="">Cargando alumnos...</option>
+          </select>
+        </div>
+        
+        <div>
+          <label><strong>Filtrar por Clase: </strong></label>
+          <select id="exp_clase" onchange="cargarExpediente()" style="width: 250px;">
+            <option value="todas">Todas las clases</option>
+            <!-- Se llena con Javascript -->
+          </select>
+        </div>
       </div>
 
       <div id="contenido-expediente" class="oculto">

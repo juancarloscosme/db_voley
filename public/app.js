@@ -106,8 +106,9 @@ function mostrar(id) {
 
   }
 
-  if (id === 'expediente') {
+   if (id === 'expediente') {
     cargarSelectJugadoresExpediente();
+    cargarSelectClasesExpediente(); // <-- NUEVA FUNCIÓN
   }
 }
 
@@ -1194,16 +1195,17 @@ async function cargarSelectJugadoresExpediente() {
 
 async function cargarExpediente() {
   const jugadorId = document.getElementById('exp_jugador').value;
+  const claseId = document.getElementById('exp_clase').value;
+
   if (!jugadorId) {
     document.getElementById('contenido-expediente').classList.add('oculto');
     return;
   }
   document.getElementById('contenido-expediente').classList.remove('oculto');
 
-  // 1. Cargar Pagos
+  // 1. Cargar Pagos (Los pagos no dependen de la clase, así que mostramos todos los del alumno)
   const resPagos = await fetch(`${API}/pagos`, { headers: headers() });
   const pagos = await resPagos.json();
-  // Filtramos los pagos que pertenecen a este jugador
   const pagosJugador = pagos.filter(p => p.jugador_id == jugadorId);
   
   let htmlPagos = '';
@@ -1215,7 +1217,6 @@ async function cargarExpediente() {
   } else {
     htmlPagos = '<ul style="list-style: none; padding: 0;">';
     pagosJugador.forEach(p => {
-      // Si está pendiente y la fecha de vencimiento ya pasó, calculamos mora
       let estadoHtml = '';
       if (p.estado === 'pendiente') {
         deudaTotal += parseFloat(p.monto);
@@ -1229,41 +1230,33 @@ async function cargarExpediente() {
       } else if (p.estado === 'pagado') {
         estadoHtml = `<span style="color: #2ecc71; font-weight: bold;">✅ Pagado</span>`;
       }
-
-      htmlPagos += `
-        <li style="margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;">
-          <strong>${p.concepto}</strong> - S/ ${p.monto} <br>
-          ${estadoHtml}
-        </li>
-      `;
+      htmlPagos += `<li style="margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;"><strong>${p.concepto}</strong> - S/ ${p.monto} <br>${estadoHtml}</li>`;
     });
     htmlPagos += '</ul>';
   }
-
   if (deudaTotal > 0) {
-    htmlPagos = `<div style="background: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
-      <strong>Deuda Total Pendiente: S/ ${deudaTotal.toFixed(2)}</strong>
-    </div>` + htmlPagos;
+    htmlPagos = `<div style="background: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin-bottom: 15px;"><strong>Deuda Total Pendiente: S/ ${deudaTotal.toFixed(2)}</strong></div>` + htmlPagos;
   }
   document.getElementById('exp_pagos').innerHTML = htmlPagos;
 
-  // 2. Cargar Asistencias (Resumen Global)
+  // 2. Cargar Asistencias (Filtradas por clase si se selecciona una)
   const resClases = await fetch(`${API}/clases`, { headers: headers() });
-  const clases = await resClases.json();
+  let clases = await resClases.json();
   
+  // Si el usuario filtró por una clase, solo evaluamos esa. Si no, todas.
+  if (claseId !== 'todas') {
+    clases = clases.filter(c => c.id == claseId);
+  }
+
   let totalAsistencias = 0;
   let totalFaltas = 0;
 
-  // Recorremos todas las clases para buscar las asistencias de este jugador
+  const nombreJugador = document.getElementById('exp_jugador').options[document.getElementById('exp_jugador').selectedIndex].text;
+
   for (const c of clases) {
     const resAsis = await fetch(`${API}/clases/${c.id}/asistencia`, { headers: headers() });
     if (resAsis.ok) {
       const asis = await resAsis.json();
-      // Filtramos por el ID del jugador (el backend nos devuelve el nombre, 
-      // así que comparamos el nombre para simplificar o asumimos que el backend envía el ID)
-      // Para evitar problemas, comparamos por nombre (idealmente el backend debería enviar jugador_id)
-      const nombreJugador = document.getElementById('exp_jugador').options[document.getElementById('exp_jugador').selectedIndex].text;
-      
       asis.forEach(a => {
         if (a.jugador === nombreJugador) {
           if (a.presente === 1) totalAsistencias++;
@@ -1287,6 +1280,8 @@ async function cargarExpediente() {
   `;
 
   // 3. Cargar Evaluaciones Técnicas
+  // NOTA: Como la tabla evaluaciones no tiene un campo 'clase_id' directo en tu base de datos,
+  // mostramos todas las del alumno. Si en el futuro le agregas clase_id, aquí se filtra.
   const resEval = await fetch(`${API}/evaluaciones/jugador/${jugadorId}`, { headers: headers() });
   if (resEval.ok) {
     const evaluaciones = await resEval.json();
@@ -1418,5 +1413,15 @@ async function guardarAsistenciaRapida(claseId, jugadorId, fecha, presente) {
     cargarAsistencias();
   } else {
     alert('Error al guardar. Verifica si la fecha es correcta.');
+  }
+}
+
+async function cargarSelectClasesExpediente() {
+  const res = await fetch(`${API}/clases`, { headers: headers() });
+  if (res.ok) {
+    const clases = await res.json();
+    const select = document.getElementById('exp_clase');
+    select.innerHTML = '<option value="todas">Todas las clases</option>' + 
+      clases.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
   }
 }
