@@ -74,42 +74,52 @@ function mostrar(id) {
     cargarSelectConceptos();
   }
   if (id === 'inventario') cargarInventario();
-  
-   if (id === 'clases') {
+    if (id === 'clases') {
     cargarClases();
     
-    // 1. Buscamos a todos los jugadores, pagos y clases
     Promise.all([
       fetch(`${API}/usuarios/jugadores`, { headers: headers() }).then(r => r.json()),
       fetch(`${API}/pagos`, { headers: headers() }).then(r => r.json()),
       fetch(`${API}/clases`, { headers: headers() }).then(r => r.json())
     ]).then(([jugadores, pagos, clases]) => {
       
-      let opcionesHTML = '<option value="">Seleccione Alumno y Clase</option>';
+      // 1. Agrupamos las clases por jugador
+      const opciones = {};
 
-      // 2. Recorremos los pagos (porque cada pago indica a qué clase se inscribió)
       pagos.forEach(pago => {
-        // Buscamos al jugador de ese pago
         const jugador = jugadores.find(j => j.id === pago.jugador_id);
-        if (!jugador) return; // Si no lo encuentra, pasamos al siguiente
+        if (!jugador) return;
 
-        // Buscamos la clase que coincida con el concepto del pago
+        // Buscamos la clase a la que pertenece este pago
         const clase = clases.find(c => pago.concepto && pago.concepto.includes(c.nombre));
 
-        // Creamos un texto que muestre al alumno y su horario
-        let textoOpcion = jugador.nombre;
         if (clase) {
           const hora = clase.hora_inicio.slice(0, 5);
-          textoOpcion += ` (${clase.dia_semana} ${hora})`;
-        } else {
-          textoOpcion += ` (${pago.concepto})`;
-        }
+          // Creamos un texto legible, ej: (Lunes 09:00)
+          const horario = `(${clase.dia_semana} ${hora})`;
 
-        // Agregamos la opción al select
-        opcionesHTML += `<option value="${jugador.id}">${textoOpcion}</option>`;
+          // Si el jugador no está en el objeto, lo creamos
+          if (!opciones[jugador.id]) {
+            opciones[jugador.id] = {
+              nombre: jugador.nombre,
+              horarios: new Set() // Usamos un Set para no duplicar si paga 2 veces la misma clase
+            };
+          }
+          // Agregamos el horario a su lista
+          opciones[jugador.id].horarios.add(horario);
+        }
       });
 
-      // 3. Llenamos el selector con las opciones generadas
+      // 2. Construimos el HTML del select
+      let opcionesHTML = '<option value="">Seleccione Alumno y Clase</option>';
+      
+      for (const id in opciones) {
+        // Unimos todos los horarios del alumno. Ej: (Lunes 09:00) y (Lunes 16:00)
+        const textoHorarios = Array.from(opciones[id].horarios).join(' y ');
+        opcionesHTML += `<option value="${id}">${opciones[id].nombre} ${textoHorarios}</option>`;
+      }
+
+      // 3. Llenamos el selector
       document.getElementById('eval_jugador').innerHTML = opcionesHTML;
     });
   }
