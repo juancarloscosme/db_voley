@@ -35,6 +35,14 @@ router.get('/jugador/:id', async (req, res) => {
 });
 
 
-
+// Eliminar una evaluación
+router.delete('/:id', permitirRoles('admin', 'entrenador'), async (req, res) => {
+  try {
+    await pool.query('DELETE FROM evaluaciones WHERE id = ?', [req.params.id]);
+    res.json({ mensaje: 'Evaluación eliminada' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 module.exports = router;

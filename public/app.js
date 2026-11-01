@@ -1327,7 +1327,11 @@ async function cargarExpediente() {
       evaluaciones.forEach(ev => {
         htmlEval += `
           <li style="margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-            <strong>Fecha:</strong> ${ev.fecha.split('T')[0]} <br>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <strong>Fecha: ${ev.fecha.split('T')[0]}</strong>
+              <!-- BOTÓN ELIMINAR -->
+              <button onclick="eliminarEvaluacion(${ev.id})" style="background: #e74c3c; color: white; border: none; padding: 2px 6px; border-radius: 4px; cursor: pointer;" title="Eliminar evaluación">❌</button>
+            </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 5px;">
               <span>Saque: ${ev.saque || '-'}/10</span>
               <span>Recepción: ${ev.recepcion || '-'}/10</span>
@@ -1514,5 +1518,22 @@ async function editarAsistencia(id, estadoActual) {
     cargarAsistencias(); // Recargar historial
   } else {
     alert('Error al actualizar la asistencia');
+  }
+}
+
+// Función para eliminar una evaluación técnica
+async function eliminarEvaluacion(id) {
+  if (!confirm('⚠️ ¿Estás seguro de eliminar esta evaluación? Esta acción no se puede deshacer.')) return;
+
+  const res = await fetch(`${API}/evaluaciones/${id}`, {
+    method: 'DELETE',
+    headers: headers()
+  });
+
+  if (res.ok) {
+    // Recargamos el expediente para que desaparezca de la lista
+    cargarExpediente(); 
+  } else {
+    alert('Error al eliminar la evaluación');
   }
 }
