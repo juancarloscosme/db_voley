@@ -543,46 +543,51 @@ async function editarClase(id) {
 }
 
 async function crearClase() {
-  // 1. Recolectamos los días seleccionados
+  // 1. Recolectamos los días seleccionados en las casillas
   const checkboxes = document.querySelectorAll('.chk-dia:checked');
   const diasSeleccionados = Array.from(checkboxes).map(cb => cb.value);
   
-  // Si no seleccionó ningún día, avisamos
+  // Si no marcó ningún día, le avisamos
   if (diasSeleccionados.length === 0) {
     alert('Por favor, selecciona al menos un día para la clase.');
     return;
   }
 
-  // Los unimos con comas (ej. "Lunes, Miércoles, Viernes")
+  // Los unimos en un solo texto (ej. "Lunes, Miércoles")
   const dia_semana = diasSeleccionados.join(', ');
 
+  // 2. Capturamos los demás datos
   const datosClase = {
     nombre: document.getElementById('cl_nombre').value,
     categoria: document.getElementById('cl_cat').value,
-    dia_semana: dia_semana, // Pasamos el texto armado
+    dia_semana: dia_semana,
     hora_inicio: document.getElementById('cl_ini').value,
     hora_fin: document.getElementById('cl_fin').value,
     cancha: document.getElementById('cl_cancha').value
   };
 
   if (!datosClase.nombre || !datosClase.hora_inicio || !datosClase.hora_fin) {
-    alert('Por favor, llena el nombre y los horarios.');
+    alert('Por favor, llena el nombre de la clase y los horarios.');
     return;
   }
 
+  // 3. Enviamos los datos al servidor
   await fetch(`${API}/clases`, {
     method: 'POST', headers: headers(),
     body: JSON.stringify(datosClase)
   });
 
-  // Limpiamos el formulario
+  // 4. Limpiamos el formulario
   document.getElementById('cl_nombre').value = '';
   document.getElementById('cl_cat').value = '';
   document.getElementById('cl_ini').value = '';
   document.getElementById('cl_fin').value = '';
   document.getElementById('cl_cancha').value = '';
-  document.querySelectorAll('.chk-dia:checked').forEach(cb => cb.checked = false); // Desmarcar casillas
+  
+  // Desmarcamos las casillas de los días
+  document.querySelectorAll('.chk-dia:checked').forEach(cb => cb.checked = false);
 
+  // 5. Recargamos la lista
   cargarClases();
 }
 
