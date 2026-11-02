@@ -126,6 +126,13 @@ router.post('/hijo', permitirRoles('admin', 'entrenador'), async (req, res) => {
   try {
     const { nombre, telefono, tutor_id, fecha_nacimiento } = req.body; 
     
+    // TRUCO: Le pedimos a MySQL que cree la columna si no existe (solo pasará la primera vez)
+    try {
+      await pool.query(`ALTER TABLE jugadores ADD COLUMN fecha_nacimiento DATE DEFAULT NULL`);
+    } catch (e) {
+      // Si da error, es porque la columna ya existía, así que ignoramos el error
+    }
+
     let fechaFinal = null;
     if (fecha_nacimiento) {
       fechaFinal = fecha_nacimiento.split('T')[0];
