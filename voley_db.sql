@@ -113,11 +113,11 @@ CREATE TABLE evaluaciones (
     FOREIGN KEY (entrenador_id) REFERENCES usuarios(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
-ALTER TABLE jugadores ADD COLUMN fecha_nacimiento DATE DEFAULT NULL;
 -- ============================================
 -- DATOS DE PRUEBA (Un Administrador)
 -- Contraseña: 123456
 -- ============================================
 INSERT INTO usuarios (nombre, email, password_hash, rol, activo) 
 VALUES ('Admin Principal', 'admin@voley.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'admin', 1);
+
+ALTER TABLE jugadores ADD COLUMN fecha_nacimiento DATE DEFAULT NULL;
