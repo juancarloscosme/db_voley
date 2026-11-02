@@ -1755,6 +1755,7 @@ async function registrarHijo() {
   const tutor_id = document.getElementById('fam_tutor').value;
   const nombre = document.getElementById('fam_hijo_nombre').value;
   const telefono = document.getElementById('fam_hijo_tel').value;
+  const fecha_nacimiento = document.getElementById('fam_hijo_nacimiento').value; // <-- NUEVO
 
   if (!tutor_id) {
     alert('Por favor, primero selecciona al apoderado en el paso 1.');
@@ -1769,7 +1770,7 @@ async function registrarHijo() {
   const res = await fetch(`${API}/usuarios/hijo`, {
     method: 'POST',
     headers: headers(),
-    body: JSON.stringify({ nombre, telefono, tutor_id })
+    body: JSON.stringify({ nombre, telefono, tutor_id, fecha_nacimiento }) // <-- Enviamos la fecha
   });
 
   const data = await res.json();
@@ -1779,11 +1780,11 @@ async function registrarHijo() {
   } else {
     alert('✅ Hijo registrado y vinculado exitosamente.');
     
-    // LIMPIAMOS LAS CAJAS DE TEXTO
+    // Limpiamos las cajas
     document.getElementById('fam_hijo_nombre').value = '';
     document.getElementById('fam_hijo_tel').value = '';
+    document.getElementById('fam_hijo_nacimiento').value = ''; // <-- Limpiamos
     
-    // RECARGAMOS EL DETALLE PARA QUE APAREZCA EL HIJO A LA DERECHA
     cargarFamiliaSeleccionada(); 
   }
 }
@@ -1933,6 +1934,8 @@ async function descargarPDFFamilia() {
           <tr>
             <th>#</th>
             <th>Nombre del Alumno</th>
+            <th>F. Nacimiento</th>
+            <th>Edad</th>
             <th>Teléfono</th>
           </tr>
         </thead>
@@ -1940,10 +1943,30 @@ async function descargarPDFFamilia() {
   `;
 
   hijos.forEach((h, index) => {
+    // CALCULAMOS LA EDAD
+    let fechaNacStr = 'N/A';
+    let edad = 'N/A';
+    
+    if (h.fecha_nacimiento) {
+      // Cortamos por si viene con hora
+      fechaNacStr = h.fecha_nacimiento.split('T')[0]; 
+      const nacimiento = new Date(fechaNacStr + 'T00:00:00');
+      const hoy = new Date();
+      let edadCalculada = hoy.getFullYear() - nacimiento.getFullYear();
+      const mes = hoy.getMonth() - nacimiento.getMonth();
+      // Si aún no ha pasado su cumpleaños este año, restamos 1
+      if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+        edadCalculada--;
+      }
+      edad = edadCalculada + ' años';
+    }
+
     html += `
       <tr>
         <td>${index + 1}</td>
         <td>${h.nombre_completo}</td>
+        <td>${fechaNacStr}</td>
+        <td>${edad}</td>
         <td>${h.telefono || 'N/A'}</td>
       </tr>
     `;
@@ -1959,4 +1982,4 @@ async function descargarPDFFamilia() {
 
   ventana.document.write(html);
   ventana.document.close();
-  }
+}

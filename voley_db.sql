@@ -113,6 +113,8 @@ CREATE TABLE evaluaciones (
     FOREIGN KEY (entrenador_id) REFERENCES usuarios(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+
+ALTER TABLE jugadores ADD COLUMN fecha_nacimiento DATE DEFAULT NULL;
 -- ============================================
 -- DATOS DE PRUEBA (Un Administrador)
 -- Contraseña: 123456
