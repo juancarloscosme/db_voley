@@ -85,18 +85,15 @@ function mostrar(id) {
       
       let opcionesHTML = '<option value="">Seleccione Alumno y Clase</option>';
 
-      // Recorremos TODOS los pagos. Cada pago es una clase/horario diferente
       pagos.forEach(pago => {
         const jugador = jugadores.find(j => j.id === pago.jugador_id);
         if (!jugador) return;
 
-        // Extraemos el horario del concepto (ej. "Lunes 16:00")
         let horario = "";
         if (pago.concepto && pago.concepto.includes('(')) {
           horario = pago.concepto.substring(pago.concepto.indexOf('('));
         }
 
-        // Creamos una opción única para este pago
         opcionesHTML += `<option value="${jugador.id}">${jugador.nombre} ${horario}</option>`;
       });
 
@@ -108,8 +105,15 @@ function mostrar(id) {
   
   if (id === 'asistencias') {
     cargarSelectClasesAsistencia();
-    cargarSelectJugadoresAsistencia();
+    // ELIMINAMOS ESTA LÍNEA QUE CAUSABA EL ERROR:
+    // cargarSelectJugadoresAsistencia(); 
     cargarAsistencias();
+    
+    // Poner fecha de hoy por defecto
+    const hoy = new Date().toISOString().split('T')[0];
+    if (document.getElementById('asis_fecha_rapida')) {
+      document.getElementById('asis_fecha_rapida').value = hoy;
+    }
   }
 
   if (id === 'expediente') {
@@ -117,7 +121,6 @@ function mostrar(id) {
     cargarSelectClasesExpediente();
   }
 
-  // AQUÍ ESTÁ LA MAGIA PARA FAMILIAS
   if (id === 'familias') {
     cargarSelectFamilias(); 
   }
@@ -1060,15 +1063,7 @@ async function cargarSelectClasesAsistencia() {
   }
 }
 
-async function cargarSelectJugadoresAsistencia() {
-  const res = await fetch(`${API}/usuarios/jugadores`, { headers: headers() });
-  if (res.ok) {
-    const jugadores = await res.json();
-    const select = document.getElementById('asis_jugador');
-    select.innerHTML = '<option value="">Seleccione un jugador</option>' + 
-      jugadores.map(j => `<option value="${j.id}">${j.nombre}</option>`).join('');
-  }
-}
+
 
 async function cargarAsistencias() {
   const claseId = document.getElementById('asis_clase').value;
