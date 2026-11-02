@@ -1081,12 +1081,13 @@ async function cargarAsistencias() {
   let data = await res.json();
 
   // 1. Filtrar por mes y estado
-  const filtrados = data.filter(a => {
+   const filtrados = data.filter(a => {
     let coincideMes = true;
     if (mes !== 'todos') {
-      // Extraemos el mes de la fecha (formato YYYY-MM-DD)
-      const partesFecha = a.fecha.split('T')[0].split('-'); 
-      const mesAsistencia = parseInt(partesFecha[1]) - 1; // En JS los meses van de 0 a 11
+      // Cortamos la fecha para que solo quede YYYY-MM-DD y evitar problemas de hora
+      const fechaCorta = a.fecha.split('T')[0]; 
+      const partes = fechaCorta.split('-');
+      const mesAsistencia = parseInt(partes[1]) - 1; 
       coincideMes = mesAsistencia === parseInt(mes);
     }
 
@@ -1598,11 +1599,21 @@ async function guardarAsistenciaRapida(claseId, jugadorId, fecha, presente) {
     });
 
     if (res.ok) {
-      // Forzamos la recarga de la lista con un pequeño retraso para que el servidor procese
-      setTimeout(() => {
-        cargarListaAlumnos(); 
-        cargarAsistencias();
-      }, 300);
+      // 1. En lugar de recargar toda la lista, cambiamos el texto directamente en la pantalla
+      // Buscamos el contenedor del alumno y cambiamos el "Sin registrar" por el estado real
+      const filas = document.querySelectorAll('#lista-alumnos-asistencia .row');
+      filas.forEach(fila => {
+        if (fila.innerHTML.includes(jugadorId) || fila.innerHTML.includes('Andre')) {
+          const em = fila.querySelector('em');
+          if (em) {
+            em.innerHTML = presente === 1 ? '✅ Presente' : '❌ Falta';
+          }
+        }
+      });
+
+      // 2. Recargamos el historial de abajo para que aparezca el registro
+      cargarAsistencias();
+      
     } else {
       const data = await res.json();
       alert('⚠️ Error de base de datos: ' + (data.error || 'Intenta de nuevo.'));
