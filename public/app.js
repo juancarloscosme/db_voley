@@ -1508,15 +1508,33 @@ async function cargarListaAlumnos() {
   const selectClase = document.getElementById('asis_clase');
   const textoClaseCompleto = selectClase.options[selectClase.selectedIndex].text; 
 
-  // Extraemos solo los días entre paréntesis (ej. "L, M, J")
-  const diasClase = textoClaseCompleto.includes('(') 
+  // 2. Validación de Día de la Semana
+  const diasClaseTexto = textoClaseCompleto.includes('(') 
     ? textoClaseCompleto.split('(')[1].replace(')', '').trim() 
     : '';
     
-  // Extraemos solo el nombre de la clase (ej. "Entrenamiento Sub-15")
+  // Convertimos la fecha seleccionada a un objeto Date
+  const fechaObj = new Date(fechaSeleccionada + 'T00:00:00');
+  const diaSemanaNum = fechaObj.getDay(); // 0=Domingo, 1=Lunes, 2=Martes, etc.
+  
+  // Mapeamos los números a las iniciales que usamos (L, M, X, J, V, S, D)
+  const diasMapa = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+  const letraDia = diasMapa[diaSemanaNum];
+
+  // Verificamos si la letra del día está dentro del texto de los días de la clase
+  if (!diasClaseTexto.includes(letraDia)) {
+    const nombresDias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    document.getElementById('lista-alumnos-asistencia').innerHTML = `
+      <p style="text-align:center; color:#e74c3c; padding: 20px; font-weight:bold;">
+        ⚠️ La fecha seleccionada (${fechaSeleccionada}) cae ${nombresDias[diaSemanaNum]}, pero esta clase solo es los días: ${diasClaseTexto}.
+      </p>`;
+    return; // Detenemos la carga porque no hay clase ese día
+  }
+
+  // 3. Si el día coincide, procedemos a cargar a los alumnos
+  const diasClase = diasClaseTexto;
   const nombreClase = textoClaseCompleto.split('(')[0].trim();
 
-  // 2. Obtenemos todos los pagos y los jugadores
   const resPagos = await fetch(`${API}/pagos`, { headers: headers() });
   const pagos = await resPagos.json();
 
@@ -1526,15 +1544,12 @@ async function cargarListaAlumnos() {
   const fechaAsistencia = new Date(fechaSeleccionada + 'T00:00:00');
   const alumnosHabilitadosIds = [];
 
-  // 3. Filtramos a los alumnos
   pagos.forEach(pago => {
     if (pago.concepto) {
-      // Verificamos que el pago contenga el nombre de la clase Y que contenga los días
       const coincideNombre = pago.concepto.includes(nombreClase);
       const coincideDias = pago.concepto.includes(diasClase);
 
       if (coincideNombre && coincideDias) {
-        // Verificamos que la fecha de asistencia esté en el rango del pago
         if (pago.fecha_inicio && pago.fecha_vencimiento) {
           const fInicio = pago.fecha_inicio.split('T')[0];
           const fFin = pago.fecha_vencimiento.split('T')[0];
@@ -1550,17 +1565,15 @@ async function cargarListaAlumnos() {
   });
 
   if (alumnosHabilitadosIds.length === 0) {
-    document.getElementById('lista-alumnos-asistencia').innerHTML = `<p style="text-align:center; color:#777; padding: 20px;">No hay alumnos inscritos para esta clase y fecha (${fechaSeleccionada}).</p>`;
+    document.getElementById('lista-alumnos-asistencia').innerHTML = `<p style="text-align:center; color:#777; padding: 20px;">No hay alumnos inscritos para esta clase en esta fecha.</p>`;
     return;
   }
 
-  // 4. Obtenemos los datos de esos alumnos y sus asistencias previas
   const jugadoresInscritos = todosJugadores.filter(j => alumnosHabilitadosIds.includes(j.id));
 
   const resAsis = await fetch(`${API}/clases/${claseId}/asistencia`, { headers: headers() });
   const asistenciasGuardadas = await resAsis.json();
 
-  // 5. Dibujamos la lista
   let html = '';
   jugadoresInscritos.forEach(j => {
     const registro = asistenciasGuardadas.find(a => 
