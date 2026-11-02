@@ -1755,7 +1755,9 @@ async function registrarHijo() {
   const tutor_id = document.getElementById('fam_tutor').value;
   const nombre = document.getElementById('fam_hijo_nombre').value;
   const telefono = document.getElementById('fam_hijo_tel').value;
-  const fecha_nacimiento = document.getElementById('fam_hijo_nacimiento').value; // <-- NUEVO
+  
+  // Capturamos la fecha del calendario
+  const fecha_nacimiento = document.getElementById('fam_hijo_nacimiento').value; 
 
   if (!tutor_id) {
     alert('Por favor, primero selecciona al apoderado en el paso 1.');
@@ -1767,10 +1769,11 @@ async function registrarHijo() {
     return;
   }
 
+  // Enviamos la fecha al servidor
   const res = await fetch(`${API}/usuarios/hijo`, {
     method: 'POST',
     headers: headers(),
-    body: JSON.stringify({ nombre, telefono, tutor_id, fecha_nacimiento }) // <-- Enviamos la fecha
+    body: JSON.stringify({ nombre, telefono, tutor_id, fecha_nacimiento }) 
   });
 
   const data = await res.json();
@@ -1778,12 +1781,12 @@ async function registrarHijo() {
   if (data.error) {
     alert('Error al crear al hijo: ' + data.error);
   } else {
-    alert('✅ Hijo registrado y vinculado exitosamente.');
+    alert('✅ Hijo registrado exitosamente.');
     
-    // Limpiamos las cajas
+    // Limpiamos las cajas de texto
     document.getElementById('fam_hijo_nombre').value = '';
     document.getElementById('fam_hijo_tel').value = '';
-    document.getElementById('fam_hijo_nacimiento').value = ''; // <-- Limpiamos
+    document.getElementById('fam_hijo_nacimiento').value = ''; 
     
     cargarFamiliaSeleccionada(); 
   }
