@@ -1438,6 +1438,40 @@ async function crearEvaluacion() {
     return;
   }
 
+  // --- VALIDACIÓN DE ASISTENCIA ---
+  // 1. Obtenemos las asistencias de todas las clases para verificar
+  const resClases = await fetch(`${API}/clases`, { headers: headers() });
+  const clases = await resClases.json();
+  
+  let tieneAsistencia = false;
+  const fechaComparar = fecha.split('T')[0];
+
+  // Recorremos las clases para buscar si el jugador estuvo presente en esa fecha
+  for (const c of clases) {
+    const resAsis = await fetch(`${API}/clases/${c.id}/asistencia`, { headers: headers() });
+    if (resAsis.ok) {
+      const asistencias = await resAsis.json();
+      // Buscamos una asistencia de este jugador en esta fecha y que esté como presente (1)
+      const registro = asistencias.find(a => 
+        a.jugador === document.getElementById('eval_jugador').options[document.getElementById('eval_jugador').selectedIndex].text.split(' (')[0] && 
+        a.fecha.startsWith(fechaComparar)
+      );
+      
+      if (registro && registro.presente === 1) {
+        tieneAsistencia = true;
+        break; // Si ya lo encontramos presente, dejamos de buscar
+      }
+    }
+  }
+
+  // Si no tiene asistencia, bloqueamos la evaluación
+  if (!tieneAsistencia) {
+    alert(`⚠️ No puedes evaluar a este alumno el día ${fechaComparar} porque no tiene una asistencia marcada como PRESENTE. Por favor, ve a la pestaña "Asistencias" y regístrala primero.`);
+    return; // Detenemos la función aquí
+  }
+  // ----------------------------------
+
+  // Si pasó la validación, guardamos la evaluación
   const res = await fetch(`${API}/evaluaciones`, {
     method: 'POST',
     headers: headers(),
@@ -1448,7 +1482,6 @@ async function crearEvaluacion() {
 
   if (res.ok) {
     alert('Evaluación guardada correctamente');
-    // Limpiar campos
     document.getElementById('eval_fecha').value = '';
     document.getElementById('eval_saque').value = '';
     document.getElementById('eval_recepcion').value = '';
