@@ -1819,8 +1819,17 @@ async function cargarFamiliaSeleccionada() {
     hijos.forEach(h => {
       html += `
         <li style="padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
-          <strong>${h.nombre_completo}</strong>
-          <span style="font-size: 0.8em; color: #3498db; cursor: pointer;" onclick="mostrar('expediente'); document.getElementById('exp_jugador').value=${h.id}; cargarExpediente();">Ver Expediente 👉</span>
+          <div>
+            <strong>${h.nombre_completo}</strong> <br>
+            <span style="font-size: 0.85em; color: #666;">
+              🎂 ${h.fecha_nacimiento ? h.fecha_nacimiento.split('T')[0] : 'Sin fecha'} | 📱 ${h.telefono || 'Sin teléfono'}
+            </span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <span style="font-size: 0.8em; color: #3498db; cursor: pointer;" onclick="mostrar('expediente'); document.getElementById('exp_jugador').value=${h.id}; cargarExpediente();">Ver Expediente 👉</span>
+            <button onclick="editarHijo(${h.id})" style="background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Editar datos">✏️</button>
+            <button onclick="eliminarHijo(${h.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Eliminar">❌</button>
+          </div>
         </li>
       `;
     });

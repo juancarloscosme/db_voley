@@ -152,4 +152,29 @@ router.get('/hijos/:tutor_id', permitirRoles('admin', 'entrenador', 'padre'), as
     res.status(500).json({ error: err.message });
   }
 });
+
+
+// Eliminar un hijo (jugador)
+router.delete('/hijos/:id', permitirRoles('admin', 'entrenador'), async (req, res) => {
+  try {
+    await pool.query('DELETE FROM jugadores WHERE id = ?', [req.params.id]);
+    res.json({ mensaje: 'Hijo eliminado correctamente' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Editar los datos de un hijo (jugador)
+router.put('/hijos/:id', permitirRoles('admin', 'entrenador'), async (req, res) => {
+  try {
+    const { nombre_completo, telefono, fecha_nacimiento } = req.body;
+    await pool.query(
+      `UPDATE jugadores SET nombre_completo = ?, telefono = ?, fecha_nacimiento = ? WHERE id = ?`,
+      [nombre_completo, telefono || null, fecha_nacimiento || null, req.params.id]
+    );
+    res.json({ mensaje: 'Hijo actualizado correctamente' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 module.exports = router;
