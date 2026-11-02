@@ -1077,14 +1077,16 @@ async function cargarAsistencias() {
   }
 
   const res = await fetch(`${API}/clases/${claseId}/asistencia`, { headers: headers() });
-  const data = await res.json();
+  let data = await res.json();
 
   // 1. Filtrar por mes y estado
   const filtrados = data.filter(a => {
     let coincideMes = true;
     if (mes !== 'todos') {
-      const fechaA = new Date(a.fecha);
-      coincideMes = fechaA.getMonth() === parseInt(mes);
+      // Forzamos a que la fecha se lea correctamente
+      const partesFecha = a.fecha.split('T')[0].split('-'); 
+      const mesAsistencia = parseInt(partesFecha[1]) - 1; // Los meses en JS van de 0 a 11
+      coincideMes = mesAsistencia === parseInt(mes);
     }
 
     let coincideEstado = true;
@@ -1105,9 +1107,9 @@ async function cargarAsistencias() {
     <span style="color: #e74c3c;">${faltas} Faltas</span> (Total: ${filtrados.length} registros)
   `;
 
-  // 3. Dibujar lista
+  // 3. Dibujar lista (Historial)
   if (filtrados.length === 0) {
-    document.getElementById('lista-asistencias').innerHTML = '<p style="text-align:center; color:#777;">No hay registros con estos filtros.</p>';
+    document.getElementById('lista-asistencias').innerHTML = '<p style="text-align:center; color:#777;">No hay registros en este periodo.</p>';
     return;
   }
 
@@ -1116,12 +1118,14 @@ async function cargarAsistencias() {
       ? '<span style="color: #2ecc71; font-weight:bold;">✅ Presente</span>' 
       : '<span style="color: #e74c3c; font-weight:bold;">❌ Falta</span>';
       
+    // Limpiamos la fecha para que no muestre la hora (YYYY-MM-DD)
+    const fechaLimpia = a.fecha.split('T')[0];
+
     return `
     <div class="row">
-      <span><strong>${a.fecha.split('T')[0]}</strong> - ${a.jugador}</span>
+      <span><strong>${fechaLimpia}</strong> - ${a.jugador}</span>
       <div style="display:flex; gap: 10px; align-items:center;">
         ${estadoHtml}
-        <!-- BOTONES NUEVOS -->
         <button onclick="editarAsistencia(${a.id}, ${a.presente})" style="background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Cambiar estado">✏️</button>
         <button onclick="eliminarAsistencia(${a.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Eliminar registro">❌</button>
       </div>
