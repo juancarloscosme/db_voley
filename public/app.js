@@ -2009,22 +2009,16 @@ async function editarHijo(id) {
   const nombre = prompt('Nuevo nombre completo:', h.nombre_completo);
   const telefono = prompt('Nuevo teléfono:', h.telefono || '');
   
-  // Formateamos la fecha para que el prompt la muestre como YYYY-MM-DD
+  // Si ya tiene fecha, la muestra en formato AAAA-MM-DD, si no, deja un ejemplo
   const fechaActual = h.fecha_nacimiento ? h.fecha_nacimiento.split('T')[0] : '';
-  
-  // Le pedimos al usuario que ingrese la fecha en el formato correcto
-  const fechaIngresada = prompt('Nueva fecha de nacimiento (Formato AAAA-MM-DD, ej. 1990-09-08):', fechaActual);
+  const fecha_nacimiento = prompt('Nueva fecha de nacimiento (Escribir con guiones: AAAA-MM-DD, ej: 2010-05-15):', fechaActual);
 
-  if (nombre === null) return; // Si cancela, no hace nada
+  if (nombre === null) return; 
 
   const updateRes = await fetch(`${API}/usuarios/hijos/${id}`, {
     method: 'PUT',
     headers: headers(),
-    body: JSON.stringify({ 
-      nombre_completo: nombre, 
-      telefono, 
-      fecha_nacimiento: fechaIngresada || null 
-    })
+    body: JSON.stringify({ nombre_completo: nombre, telefono, fecha_nacimiento })
   });
 
   if (updateRes.ok) {
