@@ -174,15 +174,16 @@ router.put('/hijos/:id', permitirRoles('admin', 'entrenador'), async (req, res) 
   try {
     const { nombre_completo, telefono, fecha_nacimiento } = req.body;
     
-    // Convertimos la fecha al formato de MySQL (YYYY-MM-DD)
+    // MAGIA: Convertimos cualquier formato a AAAA-MM-DD
     let fechaFormateada = null;
     if (fecha_nacimiento) {
-      // Si viene como 15/05/2010, la convertimos. Si viene como 2010-05-15, la dejamos igual.
       if (fecha_nacimiento.includes('/')) {
+        // Si escribe 15/05/2010, lo convertimos a 2010-05-15
         const partes = fecha_nacimiento.split('/');
         fechaFormateada = `${partes[2]}-${partes[1]}-${partes[0]}`;
       } else {
-        fechaFormateada = fecha_nacimiento.split('T')[0]; // Por si viene con hora
+        // Si escribe 2010-05-15, lo dejamos igual
+        fechaFormateada = fecha_nacimiento.split('T')[0];
       }
     }
 
