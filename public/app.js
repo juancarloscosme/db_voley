@@ -1504,9 +1504,10 @@ async function cargarListaAlumnos() {
     return;
   }
 
-  // 1. Obtenemos el nombre de la clase
+  // 1. Obtenemos la clase seleccionada (nombre + días + hora)
   const selectClase = document.getElementById('asis_clase');
-  const nombreClase = selectClase.options[selectClase.selectedIndex].text.split(' (')[0]; 
+  const textoClaseCompleto = selectClase.options[selectClase.selectedIndex].text; 
+  // Ejemplo: "Entrenamiento Sub-15 (L, M, J 10:00)"
 
   // 2. Obtenemos todos los pagos y los jugadores
   const resPagos = await fetch(`${API}/pagos`, { headers: headers() });
@@ -1516,22 +1517,20 @@ async function cargarListaAlumnos() {
   const todosJugadores = await resJugadores.json();
 
   const fechaAsistencia = new Date(fechaSeleccionada + 'T00:00:00');
-
-  // 3. Filtramos a los alumnos que:
-  //    - Tengan un pago con el nombre de esta clase
-  //    - La fecha de asistencia esté entre la fecha de inicio y fin de ese pago
   const alumnosHabilitadosIds = [];
 
+  // 3. Filtramos a los alumnos que:
+  //    - Tengan un pago que coincida con el TEXTO DE LA CLASE (incluyendo los días)
+  //    - La fecha de asistencia esté entre la fecha de inicio y fin de ese pago
   pagos.forEach(pago => {
-    if (pago.concepto && pago.concepto.includes(nombreClase)) {
+    // Verificamos si el concepto del pago es igual al texto de la clase seleccionada
+    if (pago.concepto && pago.concepto.trim() === textoClaseCompleto.trim()) {
+      
       // Si el pago tiene fechas, verificamos que la asistencia esté en el rango
       if (pago.fecha_inicio && pago.fecha_vencimiento) {
-        
-        // Convertimos las fechas a texto YYYY-MM-DD para comparar exacto
         const fInicio = pago.fecha_inicio.split('T')[0];
         const fFin = pago.fecha_vencimiento.split('T')[0];
         
-        // Comparación de textos: "2026-10-31" >= "2026-11-01" (esto da falso)
         if (fechaSeleccionada >= fInicio && fechaSeleccionada <= fFin) {
           if (!alumnosHabilitadosIds.includes(pago.jugador_id)) {
             alumnosHabilitadosIds.push(pago.jugador_id);
@@ -1542,7 +1541,7 @@ async function cargarListaAlumnos() {
   });
 
   if (alumnosHabilitadosIds.length === 0) {
-    document.getElementById('lista-alumnos-asistencia').innerHTML = `<p style="text-align:center; color:#777; padding: 20px;">No hay alumnos inscritos para esta fecha (${fechaSeleccionada}). Revisa si su pago cubre este día.</p>`;
+    document.getElementById('lista-alumnos-asistencia').innerHTML = `<p style="text-align:center; color:#777; padding: 20px;">No hay alumnos inscritos para esta clase y fecha (${fechaSeleccionada}).</p>`;
     return;
   }
 
