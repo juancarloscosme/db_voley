@@ -1674,8 +1674,16 @@ async function cargarSelectClasesExpediente() {
   if (res.ok) {
     const clases = await res.json();
     const select = document.getElementById('exp_clase');
-    select.innerHTML = '<option value="todas">Todas las clases</option>' + 
-      clases.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+    
+    // Agregamos el día y la hora al texto de la opción
+    let opcionesHTML = '<option value="todas">Todas las clases</option>';
+    
+    clases.forEach(c => {
+      const hora = c.hora_inicio ? c.hora_inicio.slice(0, 5) : '';
+      opcionesHTML += `<option value="${c.id}">${c.nombre} (${c.dia_semana} ${hora})</option>`;
+    });
+
+    select.innerHTML = opcionesHTML;
   }
 }
 
