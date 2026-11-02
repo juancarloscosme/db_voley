@@ -40,17 +40,21 @@ router.post('/:clase_id/asistencia', permitirRoles('admin', 'entrenador'), async
   try {
     const { jugador_id, presente, observacion, fecha } = req.body;
     
-    // Si no viene fecha, usa la de hoy
+    // Si viene una fecha desde el frontend, la usamos. Si no, usamos la de hoy.
     const fechaFinal = fecha ? fecha : new Date().toISOString().split('T')[0];
 
+    // Hacemos el INSERT en la tabla
     const [result] = await pool.query(
       `INSERT INTO asistencias (clase_id, jugador_id, fecha, presente, observacion)
        VALUES (?, ?, ?, ?, ?)`,
       [req.params.clase_id, jugador_id, fechaFinal, presente, observacion]
     );
+    
     const [rows] = await pool.query('SELECT * FROM asistencias WHERE id = ?', [result.insertId]);
     res.json(rows[0]);
   } catch (err) {
+    // SI HAY UN ERROR, LO MOSTRAMOS CLARAMENTE
+    console.error("Error al guardar asistencia:", err);
     res.status(500).json({ error: err.message });
   }
 });

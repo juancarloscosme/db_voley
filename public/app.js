@@ -1531,6 +1531,7 @@ async function cargarListaAlumnos() {
 }
 
 // Función para guardar un solo clic
+// Función para guardar un solo clic
 async function guardarAsistenciaRapida(claseId, jugadorId, fecha, presente) {
   try {
     const res = await fetch(`${API}/clases/${claseId}/asistencia`, {
@@ -1545,15 +1546,15 @@ async function guardarAsistenciaRapida(claseId, jugadorId, fecha, presente) {
     });
 
     if (res.ok) {
-      cargarListaAlumnos(); // Recargar la lista
-      cargarAsistencias(); // Recargar el historial
+      cargarListaAlumnos(); // Recargar la lista visual
+      cargarAsistencias(); // Recargar el historial de abajo
     } else {
-      // Si falla, mostramos el error real en pantalla
-      const errorData = await res.json();
-      alert('Error al guardar: ' + (errorData.error || 'Desconocido'));
+      // Si falla, extraemos el error del servidor y lo mostramos en una alerta
+      const data = await res.json();
+      alert('⚠️ Error al guardar asistencia: ' + (data.error || 'Intenta de nuevo.'));
     }
   } catch (error) {
-    alert('Error de conexión: ' + error.message);
+    alert('⚠️ Error de conexión: ' + error.message);
   }
 }
 
