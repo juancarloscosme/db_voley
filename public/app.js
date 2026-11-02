@@ -1070,6 +1070,7 @@ async function cargarAsistencias() {
   const mes = document.getElementById('asis_mes').value;
   const estadoFiltro = document.getElementById('asis_filtro_estado').value;
 
+  // Si no hay clase seleccionada, limpiamos la lista
   if (!claseId) {
     document.getElementById('lista-asistencias').innerHTML = '<p style="text-align:center; color:#777;">Selecciona una clase para ver la asistencia.</p>';
     document.getElementById('resumen-asistencias').innerHTML = '';
@@ -1083,9 +1084,9 @@ async function cargarAsistencias() {
   const filtrados = data.filter(a => {
     let coincideMes = true;
     if (mes !== 'todos') {
-      // Forzamos a que la fecha se lea correctamente
+      // Extraemos el mes de la fecha (formato YYYY-MM-DD)
       const partesFecha = a.fecha.split('T')[0].split('-'); 
-      const mesAsistencia = parseInt(partesFecha[1]) - 1; // Los meses en JS van de 0 a 11
+      const mesAsistencia = parseInt(partesFecha[1]) - 1; // En JS los meses van de 0 a 11
       coincideMes = mesAsistencia === parseInt(mes);
     }
 
@@ -1107,7 +1108,7 @@ async function cargarAsistencias() {
     <span style="color: #e74c3c;">${faltas} Faltas</span> (Total: ${filtrados.length} registros)
   `;
 
-  // 3. Dibujar lista (Historial)
+  // 3. Dibujar la lista de asistencias
   if (filtrados.length === 0) {
     document.getElementById('lista-asistencias').innerHTML = '<p style="text-align:center; color:#777;">No hay registros en este periodo.</p>';
     return;
@@ -1118,7 +1119,6 @@ async function cargarAsistencias() {
       ? '<span style="color: #2ecc71; font-weight:bold;">✅ Presente</span>' 
       : '<span style="color: #e74c3c; font-weight:bold;">❌ Falta</span>';
       
-    // Limpiamos la fecha para que no muestre la hora (YYYY-MM-DD)
     const fechaLimpia = a.fecha.split('T')[0];
 
     return `
