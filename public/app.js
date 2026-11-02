@@ -1493,10 +1493,13 @@ async function cargarListaAlumnos() {
     if (pago.concepto && pago.concepto.includes(nombreClase)) {
       // Si el pago tiene fechas, verificamos que la asistencia esté en el rango
       if (pago.fecha_inicio && pago.fecha_vencimiento) {
-        const inicio = new Date(pago.fecha_inicio + 'T00:00:00');
-        const fin = new Date(pago.fecha_vencimiento + 'T00:00:00');
         
-        if (fechaAsistencia >= inicio && fechaAsistencia <= fin) {
+        // Convertimos las fechas a texto YYYY-MM-DD para comparar exacto
+        const fInicio = pago.fecha_inicio.split('T')[0];
+        const fFin = pago.fecha_vencimiento.split('T')[0];
+        
+        // Comparación de textos: "2026-10-31" >= "2026-11-01" (esto da falso)
+        if (fechaSeleccionada >= fInicio && fechaSeleccionada <= fFin) {
           if (!alumnosHabilitadosIds.includes(pago.jugador_id)) {
             alumnosHabilitadosIds.push(pago.jugador_id);
           }
