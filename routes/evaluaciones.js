@@ -5,14 +5,19 @@ const { verificarToken, permitirRoles } = require('../middleware/auth');
 router.use(verificarToken);
 
 // Crear evaluación
+// Crear evaluación
 router.post('/', permitirRoles('admin', 'entrenador'), async (req, res) => {
   try {
-    const { jugador_id, saque, recepcion, ataque, bloqueo, defensa, comentario } = req.body;
+    const { jugador_id, fecha, saque, recepcion, ataque, bloqueo, defensa, comentario } = req.body;
+    
+    // Forzamos a que la fecha se guarde como texto YYYY-MM-DD
+    const fechaFinal = fecha ? fecha.split('T')[0] : new Date().toISOString().split('T')[0];
+
     const [result] = await pool.query(
       `INSERT INTO evaluaciones
        (jugador_id, entrenador_id, fecha, saque, recepcion, ataque, bloqueo, defensa, comentario)
-       VALUES (?, ?, CURRENT_DATE, ?, ?, ?, ?, ?, ?)`,
-      [jugador_id, req.usuario.id, saque, recepcion, ataque, bloqueo, defensa, comentario]
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [jugador_id, req.usuario.id, fechaFinal, saque, recepcion, ataque, bloqueo, defensa, comentario]
     );
     const [rows] = await pool.query('SELECT * FROM evaluaciones WHERE id = ?', [result.insertId]);
     res.json(rows[0]);
