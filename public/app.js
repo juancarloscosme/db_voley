@@ -1992,3 +1992,57 @@ async function descargarPDFFamilia() {
   ventana.document.write(html);
   ventana.document.close();
 }
+
+
+// Función para editar al hijo
+async function editarHijo(id) {
+  const tutor_id = document.getElementById('fam_tutor').value;
+  const res = await fetch(`${API}/usuarios/hijos/${tutor_id}`, { headers: headers() });
+  const hijos = await res.json();
+  const h = hijos.find(hijo => hijo.id === id);
+  
+  if (!h) {
+    alert('No se encontraron los datos de este alumno.');
+    return;
+  }
+
+  const nombre = prompt('Nuevo nombre completo:', h.nombre_completo);
+  const telefono = prompt('Nuevo teléfono:', h.telefono || '');
+  
+  const fechaActual = h.fecha_nacimiento ? h.fecha_nacimiento.split('T')[0] : '';
+  const fecha_nacimiento = prompt('Nueva fecha de nacimiento (YYYY-MM-DD):', fechaActual);
+
+  if (nombre === null) return; // Si cancela, no hace nada
+
+  const updateRes = await fetch(`${API}/usuarios/hijos/${id}`, {
+    method: 'PUT',
+    headers: headers(),
+    body: JSON.stringify({ nombre_completo: nombre, telefono, fecha_nacimiento })
+  });
+
+  if (updateRes.ok) {
+    alert('✅ Datos actualizados correctamente.');
+    cargarFamiliaSeleccionada(); 
+  } else {
+    const data = await updateRes.json();
+    alert('Error al editar: ' + (data.error || 'Revisa la consola.'));
+  }
+}
+
+// Función para eliminar al hijo
+async function eliminarHijo(id) {
+  if (!confirm('⚠️ ¿Estás seguro de eliminar a este alumno? Se borrarán sus pagos y asistencias.')) return;
+
+  const res = await fetch(`${API}/usuarios/hijos/${id}`, {
+    method: 'DELETE',
+    headers: headers()
+  });
+
+  if (res.ok) {
+    alert('✅ Alumno eliminado.');
+    cargarFamiliaSeleccionada();
+  } else {
+    const data = await res.json();
+    alert('Error al eliminar: ' + (data.error || 'Revisa la consola.'));
+  }
+}
