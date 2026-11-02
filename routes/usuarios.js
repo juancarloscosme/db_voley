@@ -124,20 +124,17 @@ router.put('/:id/editar', permitirRoles('admin'), async (req, res) => {
 // Ruta para crear un jugador (hijo) sin usuario de login
 router.post('/hijo', permitirRoles('admin', 'entrenador'), async (req, res) => {
   try {
-    // Capturamos los datos, incluyendo la fecha
     const { nombre, telefono, tutor_id, fecha_nacimiento } = req.body; 
     
-    // Formateamos la fecha para que MySQL no falle
     let fechaFinal = null;
     if (fecha_nacimiento) {
-      fechaFinal = fecha_nacimiento.split('T')[0]; // Corta la hora si la tiene
+      fechaFinal = fecha_nacimiento.split('T')[0];
     }
 
-    // Insertamos en la base de datos
     const [result] = await pool.query(
       `INSERT INTO jugadores (nombre_completo, telefono, tutor_id, fecha_nacimiento) 
        VALUES (?, ?, ?, ?)`,
-      [nombre, telefono || null, tutor_id, fechaFinal] // <-- Aquí se guarda la fecha
+      [nombre, telefono || null, tutor_id, fechaFinal]
     );
     
     res.json({ mensaje: 'Hijo registrado correctamente', id: result.insertId });
