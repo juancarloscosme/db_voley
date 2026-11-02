@@ -1,6 +1,6 @@
 -- ============================================
 -- SISTEMA DE CONTROL PARA CLUB DE VÓLEY
--- Archivo limpio para GoDaddy (sin CREATE DATABASE ni USE)
+-- Archivo limpio para GoDaddy
 -- ============================================
 
 -- 1. USUARIOS
@@ -17,7 +17,7 @@ CREATE TABLE usuarios (
   dni VARCHAR(15) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 2. JUGADORES
+-- 2. JUGADORES (Aquí ya incluimos fecha_nacimiento)
 CREATE TABLE jugadores (
   id INT AUTO_INCREMENT PRIMARY KEY,
   usuario_id INT NULL,
@@ -27,6 +27,7 @@ CREATE TABLE jugadores (
   tutor_id INT DEFAULT NULL,
   nombre_completo VARCHAR(100) DEFAULT NULL,
   telefono VARCHAR(20) DEFAULT NULL,
+  fecha_nacimiento DATE DEFAULT NULL, -- <--- COLUMNA AGREGADA AQUÍ
   CONSTRAINT fk_jugador_usuario
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
   CONSTRAINT fk_jugador_tutor
@@ -119,5 +120,3 @@ CREATE TABLE evaluaciones (
 -- ============================================
 INSERT INTO usuarios (nombre, email, password_hash, rol, activo) 
 VALUES ('Admin Principal', 'admin@voley.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'admin', 1);
-
-ALTER TABLE jugadores ADD COLUMN fecha_nacimiento DATE DEFAULT NULL;
