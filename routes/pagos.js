@@ -35,18 +35,18 @@ router.put('/:id/pagar', permitirRoles('admin', 'cajero'), async (req, res) => {
   }
 });
 
-// Listar pagos (jugador ve solo los suyos)
-// Listar pagos (jugador ve solo los suyos, admin ve todos)
+
 // Listar pagos (admin ve todos)
 router.get('/', async (req, res) => {
   try {
-    // Usamos LEFT JOIN por si el jugador no tiene usuario de login (creado en Familias)
+    // Usamos LEFT JOIN para que traiga el pago aunque el jugador no tenga usuario o esté mal enlazado
     const [rows] = await pool.query(
-      `SELECT p.*, COALESCE(u.nombre, j.nombre_completo) AS nombre_jugador 
+      `SELECT p.*, 
+              COALESCE(u.nombre, j.nombre_completo, 'Jugador Desconocido') AS nombre_jugador 
        FROM pagos p
-       JOIN jugadores j ON p.jugador_id = j.id
+       LEFT JOIN jugadores j ON p.jugador_id = j.id
        LEFT JOIN usuarios u ON j.usuario_id = u.id
-       ORDER BY p.fecha_vencimiento DESC`
+       ORDER BY p.id DESC`
     );
     res.json(rows);
   } catch (err) {
