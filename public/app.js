@@ -1438,40 +1438,58 @@ async function crearEvaluacion() {
     return;
   }
 
-  // --- VALIDACIÓN DE ASISTENCIA ---
-  // 1. Obtenemos las asistencias de todas las clases para verificar
+  // --- VALIDACIÓN 1: ¿El día de la fecha coincide con los días de la clase? ---
+  const selectJugador = document.getElementById('eval_jugador');
+  const textoJugador = selectJugador.options[selectJugador.selectedIndex].text;
+  
+  // Extraemos los días de la clase del texto (ej. "L, M, J")
+  const diasClaseTexto = textoJugador.includes('(') 
+    ? textoJugador.split('(')[1].replace(')', '').trim() 
+    : '';
+    
+  const fechaObj = new Date(fecha + 'T00:00:00');
+  const diaSemanaNum = fechaObj.getDay(); // 0=Domingo, 1=Lunes...
+  const diasMapa = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+  const letraDia = diasMapa[diaSemanaNum];
+
+  if (!diasClaseTexto.includes(letraDia)) {
+    const nombresDias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    alert(`⚠️ No puedes guardar la evaluación: La fecha ${fecha} cae ${nombresDias[diaSemanaNum]}, pero esta clase solo es los días ${diasClaseTexto}.`);
+    return; // Detenemos el guardado
+  }
+
+  // --- VALIDACIÓN 2: ¿El alumno tiene una asistencia marcada como Presente ese día? ---
   const resClases = await fetch(`${API}/clases`, { headers: headers() });
   const clases = await resClases.json();
   
   let tieneAsistencia = false;
   const fechaComparar = fecha.split('T')[0];
 
-  // Recorremos las clases para buscar si el jugador estuvo presente en esa fecha
   for (const c of clases) {
     const resAsis = await fetch(`${API}/clases/${c.id}/asistencia`, { headers: headers() });
     if (resAsis.ok) {
       const asistencias = await resAsis.json();
-      // Buscamos una asistencia de este jugador en esta fecha y que esté como presente (1)
+      // Buscamos si el alumno tiene un registro de "Presente" en esa fecha
+      const nombreJugador = textoJugador.split(' (')[0];
       const registro = asistencias.find(a => 
-        a.jugador === document.getElementById('eval_jugador').options[document.getElementById('eval_jugador').selectedIndex].text.split(' (')[0] && 
+        a.jugador === nombreJugador && 
         a.fecha.startsWith(fechaComparar)
       );
       
       if (registro && registro.presente === 1) {
         tieneAsistencia = true;
-        break; // Si ya lo encontramos presente, dejamos de buscar
+        break;
       }
     }
   }
 
-  // Si no tiene asistencia, bloqueamos la evaluación
   if (!tieneAsistencia) {
     alert(`⚠️ No puedes evaluar a este alumno el día ${fechaComparar} porque no tiene una asistencia marcada como PRESENTE. Por favor, ve a la pestaña "Asistencias" y regístrala primero.`);
-    return; // Detenemos la función aquí
+    return; // Detenemos el guardado
   }
-  // ----------------------------------
+  // ---------------------------------------------------------
 
-  // Si pasó la validación, guardamos la evaluación
+  // Si pasa ambas validaciones, guardamos la evaluación
   const res = await fetch(`${API}/evaluaciones`, {
     method: 'POST',
     headers: headers(),
@@ -1481,7 +1499,7 @@ async function crearEvaluacion() {
   });
 
   if (res.ok) {
-    alert('Evaluación guardada correctamente');
+    alert('✅ Evaluación guardada correctamente');
     document.getElementById('eval_fecha').value = '';
     document.getElementById('eval_saque').value = '';
     document.getElementById('eval_recepcion').value = '';
