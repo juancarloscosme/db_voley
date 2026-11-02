@@ -1998,38 +1998,58 @@ async function descargarPDFFamilia() {
 
 
 // Función para editar al hijo
-async function editarHijo(id) {
+function editarHijo(id) {
   const tutor_id = document.getElementById('fam_tutor').value;
-  const res = await fetch(`${API}/usuarios/hijos/${tutor_id}`, { headers: headers() });
-  const hijos = await res.json();
-  const h = hijos.find(hijo => hijo.id === id);
   
-  if (!h) {
-    alert('No se encontraron los datos de este alumno.');
+  // Buscamos los datos en la lista ya cargada
+  fetch(`${API}/usuarios/hijos/${tutor_id}`, { headers: headers() })
+    .then(res => res.json())
+    .then(hijos => {
+      const h = hijos.find(hijo => hijo.id === id);
+      if (!h) return;
+
+      // Llenamos el formulario oculto
+      document.getElementById('edit_id').value = h.id;
+      document.getElementById('edit-nombre-display').textContent = h.nombre_completo;
+      document.getElementById('edit_nombre').value = h.nombre_completo;
+      document.getElementById('edit_telefono').value = h.telefono || '';
+      
+      // Formateamos la fecha a YYYY-MM-DD para el calendario
+      const fechaActual = h.fecha_nacimiento ? h.fecha_nacimiento.split('T')[0] : '';
+      document.getElementById('edit_nacimiento').value = fechaActual;
+
+      // Mostramos el formulario
+      document.getElementById('form-editar-hijo').style.display = 'block';
+    });
+}
+
+function cancelarEdicionHijo() {
+  document.getElementById('form-editar-hijo').style.display = 'none';
+}
+
+async function guardarEdicionHijo() {
+  const id = document.getElementById('edit_id').value;
+  const nombre_completo = document.getElementById('edit_nombre').value;
+  const telefono = document.getElementById('edit_telefono').value;
+  const fecha_nacimiento = document.getElementById('edit_nacimiento').value;
+
+  if (!nombre_completo) {
+    alert('El nombre no puede estar vacío');
     return;
   }
 
-  const nombre = prompt('Nuevo nombre completo:', h.nombre_completo);
-  const telefono = prompt('Nuevo teléfono:', h.telefono || '');
-  
-  // Si ya tiene fecha, la muestra en formato AAAA-MM-DD, si no, deja un ejemplo
-  const fechaActual = h.fecha_nacimiento ? h.fecha_nacimiento.split('T')[0] : '';
-  const fecha_nacimiento = prompt('Nueva fecha de nacimiento (Escribir con guiones: AAAA-MM-DD, ej: 2010-05-15):', fechaActual);
-
-  if (nombre === null) return; 
-
-  const updateRes = await fetch(`${API}/usuarios/hijos/${id}`, {
+  const res = await fetch(`${API}/usuarios/hijos/${id}`, {
     method: 'PUT',
     headers: headers(),
-    body: JSON.stringify({ nombre_completo: nombre, telefono, fecha_nacimiento })
+    body: JSON.stringify({ nombre_completo, telefono, fecha_nacimiento })
   });
 
-  if (updateRes.ok) {
-    alert('✅ Datos actualizados correctamente.');
+  if (res.ok) {
+    alert('✅ Datos actualizados correctamente');
+    document.getElementById('form-editar-hijo').style.display = 'none';
     cargarFamiliaSeleccionada(); 
   } else {
-    const data = await updateRes.json();
-    alert('Error al editar: ' + (data.error || 'Revisa la consola.'));
+    alert('Error al actualizar');
   }
 }
 
