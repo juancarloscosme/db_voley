@@ -1464,39 +1464,54 @@ async function crearEvaluacion() {
 // Función para dibujar la lista de todos los alumnos de la clase seleccionada
 async function cargarListaAlumnos() {
   const claseId = document.getElementById('asis_clase').value;
-  const fecha = document.getElementById('asis_fecha_rapida').value;
+  const fechaSeleccionada = document.getElementById('asis_fecha_rapida').value;
 
-  if (!claseId || !fecha) {
+  if (!claseId || !fechaSeleccionada) {
     alert('Por favor, selecciona una clase y una fecha primero.');
     return;
   }
 
-  // 1. Obtenemos el nombre de la clase seleccionada para buscar coincidencias
+  // 1. Obtenemos el nombre de la clase
   const selectClase = document.getElementById('asis_clase');
-  const nombreClase = selectClase.options[selectClase.selectedIndex].text.split(' (')[0]; // Quitamos el día
+  const nombreClase = selectClase.options[selectClase.selectedIndex].text.split(' (')[0]; 
 
-  // 2. Obtenemos todos los pagos para saber qué alumnos están inscritos en esta clase
+  // 2. Obtenemos todos los pagos y los jugadores
   const resPagos = await fetch(`${API}/pagos`, { headers: headers() });
   const pagos = await resPagos.json();
 
-  // 3. Filtramos los IDs de los jugadores que tienen un pago con el nombre de esta clase
-  const idsAlumnosInscritos = [...new Set(
-    pagos
-      .filter(p => p.concepto && p.concepto.includes(nombreClase))
-      .map(p => p.jugador_id)
-  )];
+  const resJugadores = await fetch(`${API}/usuarios/jugadores`, { headers: headers() });
+  const todosJugadores = await resJugadores.json();
 
-  if (idsAlumnosInscritos.length === 0) {
-    document.getElementById('lista-alumnos-asistencia').innerHTML = '<p style="text-align:center; color:#777; padding: 20px;">No hay alumnos inscritos en esta clase (no se encontraron pagos).</p>';
+  const fechaAsistencia = new Date(fechaSeleccionada + 'T00:00:00');
+
+  // 3. Filtramos a los alumnos que:
+  //    - Tengan un pago con el nombre de esta clase
+  //    - La fecha de asistencia esté entre la fecha de inicio y fin de ese pago
+  const alumnosHabilitadosIds = [];
+
+  pagos.forEach(pago => {
+    if (pago.concepto && pago.concepto.includes(nombreClase)) {
+      // Si el pago tiene fechas, verificamos que la asistencia esté en el rango
+      if (pago.fecha_inicio && pago.fecha_vencimiento) {
+        const inicio = new Date(pago.fecha_inicio + 'T00:00:00');
+        const fin = new Date(pago.fecha_vencimiento + 'T00:00:00');
+        
+        if (fechaAsistencia >= inicio && fechaAsistencia <= fin) {
+          if (!alumnosHabilitadosIds.includes(pago.jugador_id)) {
+            alumnosHabilitadosIds.push(pago.jugador_id);
+          }
+        }
+      }
+    }
+  });
+
+  if (alumnosHabilitadosIds.length === 0) {
+    document.getElementById('lista-alumnos-asistencia').innerHTML = `<p style="text-align:center; color:#777; padding: 20px;">No hay alumnos inscritos para esta fecha (${fechaSeleccionada}). Revisa si su pago cubre este día.</p>`;
     return;
   }
 
-  // 4. Obtenemos los datos de los jugadores y sus asistencias previas
-  const resJugadores = await fetch(`${API}/usuarios/jugadores`, { headers: headers() });
-  const todosJugadores = await resJugadores.json();
-  
-  // Filtramos los jugadores que sí están inscritos
-  const jugadoresInscritos = todosJugadores.filter(j => idsAlumnosInscritos.includes(j.id));
+  // 4. Obtenemos los datos de esos alumnos y sus asistencias previas
+  const jugadoresInscritos = todosJugadores.filter(j => alumnosHabilitadosIds.includes(j.id));
 
   const resAsis = await fetch(`${API}/clases/${claseId}/asistencia`, { headers: headers() });
   const asistenciasGuardadas = await resAsis.json();
@@ -1504,24 +1519,18 @@ async function cargarListaAlumnos() {
   // 5. Dibujamos la lista
   let html = '';
   jugadoresInscritos.forEach(j => {
-    // Verificamos si este jugador ya tiene asistencia marcada en esta fecha
     const registro = asistenciasGuardadas.find(a => 
-      a.jugador === j.nombre && a.fecha.startsWith(fecha)
+      a.jugador === j.nombre && a.fecha.startsWith(fechaSeleccionada)
     );
     
-    let estadoActual = '';
-    if (registro) {
-      estadoActual = registro.presente ? '✅ Presente' : '❌ Falta';
-    } else {
-      estadoActual = '⏳ Sin registrar';
-    }
+    let estadoActual = registro ? (registro.presente ? '✅ Presente' : '❌ Falta') : '⏳ Sin registrar';
 
     html += `
       <div class="row" style="padding: 10px; border-bottom: 1px solid #eee;">
         <span><strong>${j.nombre}</strong> - <em>${estadoActual}</em></span>
         <div style="display:flex; gap: 5px;">
-          <button onclick="guardarAsistenciaRapida(${claseId}, ${j.id}, '${fecha}', 1)" style="background: #2ecc71; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Presente</button>
-          <button onclick="guardarAsistenciaRapida(${claseId}, ${j.id}, '${fecha}', 0)" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Falta</button>
+          <button onclick="guardarAsistenciaRapida(${claseId}, ${j.id}, '${fechaSeleccionada}', 1)" style="background: #2ecc71; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Presente</button>
+          <button onclick="guardarAsistenciaRapida(${claseId}, ${j.id}, '${fechaSeleccionada}', 0)" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Falta</button>
         </div>
       </div>
     `;
