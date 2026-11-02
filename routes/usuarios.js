@@ -122,13 +122,15 @@ router.put('/:id/editar', permitirRoles('admin'), async (req, res) => {
 });
 
 // Ruta para crear un jugador (hijo) sin usuario de login
-// Ruta para crear un jugador (hijo) sin usuario de login
 router.post('/hijo', permitirRoles('admin', 'entrenador'), async (req, res) => {
   try {
-    const { nombre, telefono, tutor_id, fecha_nacimiento } = req.body; // <-- Capturamos
+    // 1. Capturamos la fecha_nacimiento del cuerpo de la petición
+    const { nombre, telefono, tutor_id, fecha_nacimiento } = req.body;
     
+    // 2. Insertamos en la tabla incluyendo la fecha_nacimiento
     const [result] = await pool.query(
-      `INSERT INTO jugadores (nombre_completo, telefono, tutor_id, fecha_nacimiento) VALUES (?, ?, ?, ?)`,
+      `INSERT INTO jugadores (nombre_completo, telefono, tutor_id, fecha_nacimiento) 
+       VALUES (?, ?, ?, ?)`,
       [nombre, telefono || null, tutor_id, fecha_nacimiento || null]
     );
     
