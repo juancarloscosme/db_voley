@@ -388,6 +388,20 @@
           <hr style="margin: 15px 0;">
           
           <h3>2. Registrar un Nuevo Hijo (Jugador)</h3>
+
+          <!-- FORMULARIO OCULTO PARA EDITAR HIJO -->
+          <div id="form-editar-hijo" style="display: none; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #3498db; margin-top: 15px;">
+            <h4 style="margin-top: 0; color: #3498db;">Editando a: <span id="edit-nombre-display"></span></h4>
+            <input type="hidden" id="edit_id">
+            <input id="edit_nombre" placeholder="Nombre completo" style="width: 100%; margin-bottom: 8px;">
+            <input id="edit_telefono" placeholder="Teléfono" style="width: 100%; margin-bottom: 8px;">
+            <label style="font-size: 0.9em; color: #555;">Fecha de Nacimiento:</label>
+            <input type="date" id="edit_nacimiento" style="width: 100%; margin-bottom: 8px;">
+            <button onclick="guardarEdicionHijo()" style="background: #2ecc71; color: white; border: none; padding: 8px; width: 100%; border-radius: 6px; cursor: pointer;">Guardar Cambios</button>
+            <button onclick="cancelarEdicionHijo()" style="background: #95a5a6; color: white; border: none; padding: 8px; width: 100%; border-radius: 6px; cursor: pointer; margin-top: 5px;">Cancelar</button>
+          </div>
+
+
           <p style="font-size: 0.9em; color: #666;">El hijo no necesita contraseña, es un registro del club.</p>
           
           <input id="fam_hijo_nombre" placeholder="Nombre completo del hijo" style="width: 100%; margin-bottom: 8px;">
