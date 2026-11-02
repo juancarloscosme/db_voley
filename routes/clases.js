@@ -74,14 +74,15 @@ router.post('/:clase_id/asistencia', permitirRoles('admin', 'entrenador'), async
   }
 });
 // Ver asistencia de una clase
+// Ver asistencia de una clase
 router.get('/:clase_id/asistencia', permitirRoles('admin', 'entrenador'), async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT a.*, u.nombre AS jugador
+      `SELECT a.*, COALESCE(u.nombre, j.nombre_completo) AS jugador 
        FROM asistencias a
        JOIN jugadores j ON a.jugador_id = j.id
-       JOIN usuarios u ON j.usuario_id = u.id
-       WHERE a.clase_id = ?
+       LEFT JOIN usuarios u ON j.usuario_id = u.id
+       WHERE a.clase_id = ? 
        ORDER BY a.fecha DESC`,
       [req.params.clase_id]
     );

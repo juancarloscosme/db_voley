@@ -1070,7 +1070,6 @@ async function cargarAsistencias() {
   const mes = document.getElementById('asis_mes').value;
   const estadoFiltro = document.getElementById('asis_filtro_estado').value;
 
-  // Si no hay clase seleccionada, limpiamos la lista
   if (!claseId) {
     document.getElementById('lista-asistencias').innerHTML = '<p style="text-align:center; color:#777;">Selecciona una clase para ver la asistencia.</p>';
     document.getElementById('resumen-asistencias').innerHTML = '';
@@ -1080,11 +1079,12 @@ async function cargarAsistencias() {
   const res = await fetch(`${API}/clases/${claseId}/asistencia`, { headers: headers() });
   let data = await res.json();
 
-  // 1. Filtrar por mes y estado
-   const filtrados = data.filter(a => {
+  // 1. Filtramos por mes y estado
+  const filtrados = data.filter(a => {
     let coincideMes = true;
+    
     if (mes !== 'todos') {
-      // Cortamos la fecha para que solo quede YYYY-MM-DD y evitar problemas de hora
+      // Extraemos solo el mes de la fecha (formato YYYY-MM-DD)
       const fechaCorta = a.fecha.split('T')[0]; 
       const partes = fechaCorta.split('-');
       const mesAsistencia = parseInt(partes[1]) - 1; 
@@ -1099,7 +1099,7 @@ async function cargarAsistencias() {
     return coincideMes && coincideEstado;
   });
 
-  // 2. Calcular Resumen
+  // 2. Calcular Resumen (Totales)
   let presentes = 0;
   let faltas = 0;
   filtrados.forEach(a => a.presente ? presentes++ : faltas++);
@@ -1109,7 +1109,7 @@ async function cargarAsistencias() {
     <span style="color: #e74c3c;">${faltas} Faltas</span> (Total: ${filtrados.length} registros)
   `;
 
-  // 3. Dibujar la lista de asistencias
+  // 3. Dibujar la lista del historial
   if (filtrados.length === 0) {
     document.getElementById('lista-asistencias').innerHTML = '<p style="text-align:center; color:#777;">No hay registros en este periodo.</p>';
     return;
