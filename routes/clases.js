@@ -35,26 +35,39 @@ router.post('/', permitirRoles('admin', 'entrenador'), async (req, res) => {
   }
 });
 
-// Registrar asistencia
+// Registrar o actualizar asistencia
 router.post('/:clase_id/asistencia', permitirRoles('admin', 'entrenador'), async (req, res) => {
   try {
     const { jugador_id, presente, observacion, fecha } = req.body;
     
-    // Si viene una fecha desde el frontend, la usamos. Si no, usamos la de hoy.
+    // Si no viene fecha, usamos la de hoy
     const fechaFinal = fecha ? fecha : new Date().toISOString().split('T')[0];
 
-    // Hacemos el INSERT en la tabla
-    const [result] = await pool.query(
-      `INSERT INTO asistencias (clase_id, jugador_id, fecha, presente, observacion)
-       VALUES (?, ?, ?, ?, ?)`,
-      [req.params.clase_id, jugador_id, fechaFinal, presente, observacion]
+    // 1. Revisamos si ya existe una asistencia para este alumno, en esta clase, en esta fecha
+    const [existe] = await pool.query(
+      `SELECT id FROM asistencias WHERE clase_id = ? AND jugador_id = ? AND fecha = ?`,
+      [req.params.clase_id, jugador_id, fechaFinal]
     );
-    
-    const [rows] = await pool.query('SELECT * FROM asistencias WHERE id = ?', [result.insertId]);
-    res.json(rows[0]);
+
+    if (existe.length > 0) {
+      // 2. Si ya existe, la actualizamos (cambiar de falta a presente, etc.)
+      await pool.query(
+        `UPDATE asistencias SET presente = ?, observacion = ? WHERE id = ?`,
+        [presente, observacion || '', existe[0].id]
+      );
+      res.json({ mensaje: 'Asistencia actualizada' });
+    } else {
+      // 3. Si no existe, la creamos desde cero
+      const [result] = await pool.query(
+        `INSERT INTO asistencias (clase_id, jugador_id, fecha, presente, observacion)
+         VALUES (?, ?, ?, ?, ?)`,
+        [req.params.clase_id, jugador_id, fechaFinal, presente, observacion || '']
+      );
+      res.json({ mensaje: 'Asistencia creada', id: result.insertId });
+    }
   } catch (err) {
-    // SI HAY UN ERROR, LO MOSTRAMOS CLARAMENTE
-    console.error("Error al guardar asistencia:", err);
+    // Si hay un error de base de datos, lo mostramos claramente en la consola del servidor
+    console.error("Error en asistencia:", err);
     res.status(500).json({ error: err.message });
   }
 });

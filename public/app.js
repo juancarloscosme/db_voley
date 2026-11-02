@@ -1558,12 +1558,12 @@ async function guardarAsistenciaRapida(claseId, jugadorId, fecha, presente) {
     });
 
     if (res.ok) {
-      cargarListaAlumnos(); // Recargar la lista visual
-      cargarAsistencias(); // Recargar el historial de abajo
+      cargarListaAlumnos(); 
+      cargarAsistencias(); 
     } else {
-      // Si falla, extraemos el error del servidor y lo mostramos en una alerta
+      // SI HAY ERROR, TE LO MUESTRA EN PANTALLA
       const data = await res.json();
-      alert('⚠️ Error al guardar asistencia: ' + (data.error || 'Intenta de nuevo.'));
+      alert('⚠️ La base de datos rechazó el guardado: ' + (data.error || 'Intenta de nuevo.'));
     }
   } catch (error) {
     alert('⚠️ Error de conexión: ' + error.message);

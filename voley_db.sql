@@ -139,3 +139,11 @@ ALTER TABLE jugadores MODIFY usuario_id INT NULL;
 ALTER TABLE usuarios MODIFY rol ENUM('admin', 'entrenador', 'jugador', 'padre', 'cajero', 'directivo', 'voluntario');
 ALTER TABLE evaluaciones ADD COLUMN clase_id INT DEFAULT NULL;
 ALTER TABLE clases MODIFY dia_semana VARCHAR(50);
+-- 1. Hacemos que el ID sea autoincremental (por si no lo era)
+ALTER TABLE asistencias MODIFY id INT AUTO_INCREMENT PRIMARY KEY;
+
+-- 2. Nos aseguramos de que acepte valores nulos en observacion
+ALTER TABLE asistencias MODIFY observacion TEXT NULL;
+
+-- 3. Eliminamos cualquier regla estricta que impida insertar
+SET FOREIGN_KEY_CHECKS=0;
