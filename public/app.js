@@ -1504,10 +1504,17 @@ async function cargarListaAlumnos() {
     return;
   }
 
-  // 1. Obtenemos la clase seleccionada (nombre + días + hora)
+  // 1. Obtenemos el texto de la clase seleccionada (ej. "Entrenamiento Sub-15 (L, M, J)")
   const selectClase = document.getElementById('asis_clase');
   const textoClaseCompleto = selectClase.options[selectClase.selectedIndex].text; 
-  // Ejemplo: "Entrenamiento Sub-15 (L, M, J 10:00)"
+
+  // Extraemos solo los días entre paréntesis (ej. "L, M, J")
+  const diasClase = textoClaseCompleto.includes('(') 
+    ? textoClaseCompleto.split('(')[1].replace(')', '').trim() 
+    : '';
+    
+  // Extraemos solo el nombre de la clase (ej. "Entrenamiento Sub-15")
+  const nombreClase = textoClaseCompleto.split('(')[0].trim();
 
   // 2. Obtenemos todos los pagos y los jugadores
   const resPagos = await fetch(`${API}/pagos`, { headers: headers() });
@@ -1519,21 +1526,23 @@ async function cargarListaAlumnos() {
   const fechaAsistencia = new Date(fechaSeleccionada + 'T00:00:00');
   const alumnosHabilitadosIds = [];
 
-  // 3. Filtramos a los alumnos que:
-  //    - Tengan un pago que coincida con el TEXTO DE LA CLASE (incluyendo los días)
-  //    - La fecha de asistencia esté entre la fecha de inicio y fin de ese pago
+  // 3. Filtramos a los alumnos
   pagos.forEach(pago => {
-    // Verificamos si el concepto del pago es igual al texto de la clase seleccionada
-    if (pago.concepto && pago.concepto.trim() === textoClaseCompleto.trim()) {
-      
-      // Si el pago tiene fechas, verificamos que la asistencia esté en el rango
-      if (pago.fecha_inicio && pago.fecha_vencimiento) {
-        const fInicio = pago.fecha_inicio.split('T')[0];
-        const fFin = pago.fecha_vencimiento.split('T')[0];
-        
-        if (fechaSeleccionada >= fInicio && fechaSeleccionada <= fFin) {
-          if (!alumnosHabilitadosIds.includes(pago.jugador_id)) {
-            alumnosHabilitadosIds.push(pago.jugador_id);
+    if (pago.concepto) {
+      // Verificamos que el pago contenga el nombre de la clase Y que contenga los días
+      const coincideNombre = pago.concepto.includes(nombreClase);
+      const coincideDias = pago.concepto.includes(diasClase);
+
+      if (coincideNombre && coincideDias) {
+        // Verificamos que la fecha de asistencia esté en el rango del pago
+        if (pago.fecha_inicio && pago.fecha_vencimiento) {
+          const fInicio = pago.fecha_inicio.split('T')[0];
+          const fFin = pago.fecha_vencimiento.split('T')[0];
+          
+          if (fechaSeleccionada >= fInicio && fechaSeleccionada <= fFin) {
+            if (!alumnosHabilitadosIds.includes(pago.jugador_id)) {
+              alumnosHabilitadosIds.push(pago.jugador_id);
+            }
           }
         }
       }
