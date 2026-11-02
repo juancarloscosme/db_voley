@@ -1532,23 +1532,28 @@ async function cargarListaAlumnos() {
 
 // Función para guardar un solo clic
 async function guardarAsistenciaRapida(claseId, jugadorId, fecha, presente) {
-  const res = await fetch(`${API}/clases/${claseId}/asistencia`, {
-    method: 'POST',
-    headers: headers(),
-    body: JSON.stringify({
-      jugador_id: jugadorId,
-      fecha: fecha, // Enviamos la fecha explícitamente
-      presente: presente,
-      observacion: 'Asistencia rápida'
-    })
-  });
+  try {
+    const res = await fetch(`${API}/clases/${claseId}/asistencia`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({
+        jugador_id: jugadorId,
+        fecha: fecha,
+        presente: presente,
+        observacion: 'Asistencia rápida'
+      })
+    });
 
-  if (res.ok) {
-    // Recargamos la lista y el historial para que se vea el cambio
-    cargarListaAlumnos();
-    cargarAsistencias();
-  } else {
-    alert('Error al guardar. Verifica si la fecha es correcta.');
+    if (res.ok) {
+      cargarListaAlumnos(); // Recargar la lista
+      cargarAsistencias(); // Recargar el historial
+    } else {
+      // Si falla, mostramos el error real en pantalla
+      const errorData = await res.json();
+      alert('Error al guardar: ' + (errorData.error || 'Desconocido'));
+    }
+  } catch (error) {
+    alert('Error de conexión: ' + error.message);
   }
 }
 
