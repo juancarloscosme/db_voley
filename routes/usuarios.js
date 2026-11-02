@@ -125,21 +125,19 @@ router.put('/:id/editar', permitirRoles('admin'), async (req, res) => {
 router.post('/hijo', permitirRoles('admin', 'entrenador'), async (req, res) => {
   try {
     const { nombre, telefono, tutor_id, fecha_nacimiento } = req.body; 
-
-    // 1. Intentamos crear la columna si no existe (en GoDaddy esto a veces funciona si se hace fuera de una transacción)
+    
+    // TRUCO: Le pedimos a MySQL que cree la columna si no existe (solo pasará la primera vez)
     try {
-      await pool.query(`ALTER TABLE jugadores ADD fecha_nacimiento DATE DEFAULT NULL`);
+      await pool.query(`ALTER TABLE jugadores ADD COLUMN fecha_nacimiento DATE DEFAULT NULL`);
     } catch (e) {
-      // Si la columna ya existe, ignoramos el error
+      // Si da error, es porque la columna ya existía, así que ignoramos el error
     }
 
-    // 2. Preparamos la fecha
     let fechaFinal = null;
     if (fecha_nacimiento) {
       fechaFinal = fecha_nacimiento.split('T')[0];
     }
 
-    // 3. Insertamos al jugador
     const [result] = await pool.query(
       `INSERT INTO jugadores (nombre_completo, telefono, tutor_id, fecha_nacimiento) 
        VALUES (?, ?, ?, ?)`,
