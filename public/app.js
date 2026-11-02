@@ -1594,12 +1594,15 @@ async function guardarAsistenciaRapida(claseId, jugadorId, fecha, presente) {
     });
 
     if (res.ok) {
-      cargarListaAlumnos(); 
-      cargarAsistencias(); 
+      // 1. Volvemos a cargar la lista de alumnos para que se vea el "✅ Presente"
+      await cargarListaAlumnos(); 
+      
+      // 2. Volvemos a cargar el historial de abajo
+      await cargarAsistencias(); 
+      
     } else {
-      // SI HAY ERROR, TE LO MUESTRA EN PANTALLA
       const data = await res.json();
-      alert('⚠️ La base de datos rechazó el guardado: ' + (data.error || 'Intenta de nuevo.'));
+      alert('⚠️ Error al guardar: ' + (data.error || 'Intenta de nuevo.'));
     }
   } catch (error) {
     alert('⚠️ Error de conexión: ' + error.message);
