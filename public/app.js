@@ -1291,13 +1291,17 @@ async function cargarExpediente() {
   
   let pagosJugador = pagos.filter(p => p.jugador_id == jugadorId);
   
-  // Filtro de tiempo para pagos
+  // Filtro de tiempo para pagos (Comparación por texto YYYY-MM-DD)
   if (mesFiltro !== 'todos' || anioFiltro !== 'todos') {
     pagosJugador = pagosJugador.filter(p => {
       if (!p.fecha_inicio) return false;
-      const f = new Date(p.fecha_inicio);
-      const coincideMes = mesFiltro === 'todos' || f.getMonth() === parseInt(mesFiltro);
-      const coincideAnio = anioFiltro === 'todos' || f.getFullYear() === parseInt(anioFiltro);
+      const fechaStr = p.fecha_inicio.split('T')[0]; 
+      const partes = fechaStr.split('-');
+      const anio = parseInt(partes[0]);
+      const mes = parseInt(partes[1]) - 1; 
+
+      const coincideMes = mesFiltro === 'todos' || mes === parseInt(mesFiltro);
+      const coincideAnio = anioFiltro === 'todos' || anio === parseInt(anioFiltro);
       return coincideMes && coincideAnio;
     });
   }
@@ -1314,12 +1318,14 @@ async function cargarExpediente() {
       let estadoHtml = '';
       if (p.estado === 'pendiente') {
         deudaTotal += parseFloat(p.monto);
-        const fechaVenc = new Date(p.fecha_vencimiento);
+        const fechaVencStr = p.fecha_vencimiento.split('T')[0];
+        const fechaVenc = new Date(fechaVencStr + 'T00:00:00'); // Forzamos hora cero
+        
         if (fechaVenc < hoy) {
           const diasMora = Math.floor((hoy - fechaVenc) / (1000 * 60 * 60 * 24));
           estadoHtml = `<span style="color: #e74c3c; font-weight: bold;">⚠️ Vencido hace ${diasMora} días</span>`;
         } else {
-          estadoHtml = `<span style="color: #f39c12; font-weight: bold;">⏳ Pendiente (Vence: ${p.fecha_vencimiento.split('T')[0]})</span>`;
+          estadoHtml = `<span style="color: #f39c12; font-weight: bold;">⏳ Pendiente (Vence: ${fechaVencStr})</span>`;
         }
       } else if (p.estado === 'pagado') {
         estadoHtml = `<span style="color: #2ecc71; font-weight: bold;">✅ Pagado</span>`;
@@ -1344,18 +1350,23 @@ async function cargarExpediente() {
 
   let totalAsistencias = 0;
   let totalFaltas = 0;
-  const nombreJugador = document.getElementById('exp_jugador').options[document.getElementById('exp_jugador').selectedIndex].text;
+  const nombreJugador = document.getElementById('exp_jugador').options[document.getElementById('exp_jugador').selectedIndex].text.split(' (')[0]; // Limpiamos el nombre
 
   for (const c of clases) {
     const resAsis = await fetch(`${API}/clases/${c.id}/asistencia`, { headers: headers() });
     if (resAsis.ok) {
       let asis = await resAsis.json();
       
-      // Filtro de fecha para asistencias
+      // Filtro de fecha para asistencias (Comparación por texto)
       asis = asis.filter(a => {
-        const f = new Date(a.fecha);
-        const coincideMes = mesFiltro === 'todos' || f.getMonth() === parseInt(mesFiltro);
-        const coincideAnio = anioFiltro === 'todos' || f.getFullYear() === parseInt(anioFiltro);
+        if (!a.fecha) return false;
+        const fechaStr = a.fecha.split('T')[0];
+        const partes = fechaStr.split('-');
+        const anio = parseInt(partes[0]);
+        const mes = parseInt(partes[1]) - 1;
+
+        const coincideMes = mesFiltro === 'todos' || mes === parseInt(mesFiltro);
+        const coincideAnio = anioFiltro === 'todos' || anio === parseInt(anioFiltro);
         return coincideMes && coincideAnio;
       });
 
@@ -1386,11 +1397,16 @@ async function cargarExpediente() {
   if (resEval.ok) {
     let evaluaciones = await resEval.json();
     
-    // Filtro de fecha para evaluaciones
+    // Filtro de fecha para evaluaciones (Comparación por texto)
     evaluaciones = evaluaciones.filter(ev => {
-      const f = new Date(ev.fecha);
-      const coincideMes = mesFiltro === 'todos' || f.getMonth() === parseInt(mesFiltro);
-      const coincideAnio = anioFiltro === 'todos' || f.getFullYear() === parseInt(anioFiltro);
+      if (!ev.fecha) return false;
+      const fechaStr = ev.fecha.split('T')[0];
+      const partes = fechaStr.split('-');
+      const anio = parseInt(partes[0]);
+      const mes = parseInt(partes[1]) - 1;
+
+      const coincideMes = mesFiltro === 'todos' || mes === parseInt(mesFiltro);
+      const coincideAnio = anioFiltro === 'todos' || anio === parseInt(anioFiltro);
       return coincideMes && coincideAnio;
     });
 
@@ -1403,7 +1419,6 @@ async function cargarExpediente() {
           <li style="margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
               <strong>Fecha: ${ev.fecha.split('T')[0]}</strong>
-              <!-- BOTÓN ELIMINAR -->
               <button onclick="eliminarEvaluacion(${ev.id})" style="background: #e74c3c; color: white; border: none; padding: 2px 6px; border-radius: 4px; cursor: pointer;" title="Eliminar evaluación">❌</button>
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 5px;">
