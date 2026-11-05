@@ -122,28 +122,18 @@ router.put('/:id/editar', permitirRoles('admin'), async (req, res) => {
 });
 
 // Ruta para crear un jugador (hijo) sin usuario de login
+// Crear hijo (Guardamos la fecha en 'categoria' con un separador)
 router.post('/hijo', permitirRoles('admin', 'entrenador'), async (req, res) => {
   try {
     const { nombre, telefono, tutor_id, fecha_nacimiento } = req.body; 
+    const fechaFinal = fecha_nacimiento ? fecha_nacimiento.split('T')[0] : 'Sin fecha';
     
-    // TRUCO: Le pedimos a MySQL que cree la columna si no existe (solo pasará la primera vez)
-    try {
-      await pool.query(`ALTER TABLE jugadores ADD COLUMN fecha_nacimiento DATE DEFAULT NULL`);
-    } catch (e) {
-      // Si da error, es porque la columna ya existía, así que ignoramos el error
-    }
-
-    let fechaFinal = null;
-    if (fecha_nacimiento) {
-      fechaFinal = fecha_nacimiento.split('T')[0];
-    }
-
+    // Guardamos la fecha en el campo categoria (que sí existe en GoDaddy)
     const [result] = await pool.query(
-      `INSERT INTO jugadores (nombre_completo, telefono, tutor_id, fecha_nacimiento) 
+      `INSERT INTO jugadores (nombre_completo, telefono, tutor_id, categoria) 
        VALUES (?, ?, ?, ?)`,
       [nombre, telefono || null, tutor_id, fechaFinal]
     );
-    
     res.json({ mensaje: 'Hijo registrado correctamente', id: result.insertId });
   } catch (err) {
     res.status(500).json({ error: err.message });
