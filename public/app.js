@@ -1764,7 +1764,7 @@ async function registrarHijo() {
   const nombre = document.getElementById('fam_hijo_nombre').value;
   const telefono = document.getElementById('fam_hijo_tel').value;
   
-  // CAPTURAMOS LA FECHA DEL CALENDARIO
+  // Capturamos la fecha
   const inputFecha = document.getElementById('fam_hijo_nacimiento');
   const fecha_nacimiento = inputFecha ? inputFecha.value : null; 
 
@@ -1778,7 +1778,7 @@ async function registrarHijo() {
     return;
   }
 
-  // ENVIAMOS LA FECHA AL SERVIDOR
+  // Enviamos los datos
   const res = await fetch(`${API}/usuarios/hijo`, {
     method: 'POST',
     headers: headers(),
@@ -1786,7 +1786,7 @@ async function registrarHijo() {
       nombre, 
       telefono, 
       tutor_id, 
-      fecha_nacimiento: fecha_nacimiento ? fecha_nacimiento : null 
+      fecha_nacimiento 
     }) 
   });
 
@@ -1797,12 +1797,15 @@ async function registrarHijo() {
   } else {
     alert('✅ Hijo registrado exitosamente.');
     
-    // Limpiamos las cajas
+    // --- AQUÍ ESTÁ LA MAGIA DE LIMPIEZA ---
     document.getElementById('fam_hijo_nombre').value = '';
     document.getElementById('fam_hijo_tel').value = '';
-    if (inputFecha) inputFecha.value = ''; // Limpiamos la fecha
+    if (inputFecha) inputFecha.value = ''; 
     
+    // Mantenemos al padre seleccionado (es más cómodo para registrar varios hijos del mismo padre)
+    // Pero recargamos la lista de hijos para que aparezca el nuevo
     cargarFamiliaSeleccionada(); 
+    // --------------------------------------
   }
 }
 
