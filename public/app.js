@@ -2103,39 +2103,16 @@ async function eliminarHijo(id) {
 
 
 async function verCumpleanosDelMes() {
-  // 1. Obtenemos el mes actual (0 = Enero, 11 = Diciembre)
   const hoy = new Date();
   const mesActual = hoy.getMonth(); 
   const nombreMeses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
   const nombreMes = nombreMeses[mesActual];
 
-  // 2. Obtenemos todos los hijos registrados en el sistema
-  const res = await fetch(`${API}/usuarios`, { headers: headers() });
-  const usuarios = await res.json();
-  
-  // Buscamos a todos los jugadores
-  const resJugadores = await fetch(`${API}/usuarios/jugadores`, { headers: headers() });
-  const jugadores = await resJugadores.json();
-
-  let cumpleaneros = [];
-
-  // 3. Filtramos a los que cumplen años este mes
-  for (const j of jugadores) {
-    // Buscamos el perfil completo del jugador para ver su fecha (que guardamos en 'posicion' o 'nombre')
-    // Hacemos una petición al backend para obtener sus datos (necesitamos el endpoint GET /hijos/:tutor_id)
-    // Para evitar muchas peticiones, buscaremos a todos los que tengan '|' en el nombre
-  }
-
-  // Como los datos vienen de Familias, haremos una búsqueda general.
-  // (Nota: Para que esto funcione rápido, necesitamos que la ruta GET /jugadores envíe la fecha)
-  
-  // Vamos a obtener los datos desde la tabla de hijos directamente
-  // Como el sistema no tiene una ruta que traiga a TODOS los hijos con su fecha, 
-  // usaremos un pequeño truco consultando a los padres.
-  
   const resPadres = await fetch(`${API}/usuarios`, { headers: headers() });
   const todosUsuarios = await resPadres.json();
   const padres = todosUsuarios.filter(u => u.rol === 'padre');
+
+  let cumpleaneros = [];
 
   for (const p of padres) {
     const resHijos = await fetch(`${API}/usuarios/hijos/${p.id}`, { headers: headers() });
@@ -2158,12 +2135,17 @@ async function verCumpleanosDelMes() {
       if (fechaStr && fechaStr !== 'Sin fecha' && fechaStr !== 'N/A') {
         const fechaNac = new Date(fechaStr + 'T00:00:00');
         if (fechaNac.getMonth() === mesActual) {
-          // Calculamos la edad que cumplirá
           let edad = hoy.getFullYear() - fechaNac.getFullYear();
           
+          // Formateamos la fecha para mostrarla bonita (DD/MM/AAAA)
+          const dia = String(fechaNac.getDate()).padStart(2, '0');
+          const mes = String(fechaNac.getMonth() + 1).padStart(2, '0');
+          const anio = fechaNac.getFullYear();
+          const fechaFormateada = `${dia}/${mes}/${anio}`;
+
           cumpleaneros.push({
             nombre: nombreLimpio,
-            dia: fechaNac.getDate(),
+            fechaCompleta: fechaFormateada,
             edad: edad,
             telefono: h.telefono || 'Sin teléfono',
             padre: p.nombre
@@ -2173,10 +2155,8 @@ async function verCumpleanosDelMes() {
     });
   }
 
-  // 4. Ordenamos por día de cumpleaños
-  cumpleaneros.sort((a, b) => a.dia - b.dia);
+  cumpleaneros.sort((a, b) => a.edad - b.edad);
 
-  // 5. Abrimos la ventana con el reporte
   const ventana = window.open('', '_blank');
   let html = `
     <html>
@@ -2199,8 +2179,8 @@ async function verCumpleanosDelMes() {
       <table>
         <thead>
           <tr>
-            <th>Día</th>
             <th>Nombre del Alumno</th>
+            <th>Fecha de Cumpleaños</th>
             <th>Cumple</th>
             <th>Apoderado</th>
             <th>Contacto</th>
@@ -2215,8 +2195,8 @@ async function verCumpleanosDelMes() {
     cumpleaneros.forEach(c => {
       html += `
         <tr>
-          <td><strong>${c.dia}</strong></td>
-          <td>${c.nombre}</td>
+          <td><strong>${c.nombre}</strong></td>
+          <td>${c.fechaCompleta}</td>
           <td>${c.edad} años</td>
           <td>${c.padre}</td>
           <td>${c.telefono}</td>
