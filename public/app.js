@@ -1764,7 +1764,6 @@ async function registrarHijo() {
   const nombre = document.getElementById('fam_hijo_nombre').value;
   const telefono = document.getElementById('fam_hijo_tel').value;
   
-  // Capturamos la fecha
   const inputFecha = document.getElementById('fam_hijo_nacimiento');
   const fecha_nacimiento = inputFecha ? inputFecha.value : null; 
 
@@ -1778,16 +1777,10 @@ async function registrarHijo() {
     return;
   }
 
-  // Enviamos los datos
   const res = await fetch(`${API}/usuarios/hijo`, {
     method: 'POST',
     headers: headers(),
-    body: JSON.stringify({ 
-      nombre, 
-      telefono, 
-      tutor_id, 
-      fecha_nacimiento 
-    }) 
+    body: JSON.stringify({ nombre, telefono, tutor_id, fecha_nacimiento }) 
   });
 
   const data = await res.json();
@@ -1797,15 +1790,21 @@ async function registrarHijo() {
   } else {
     alert('✅ Hijo registrado exitosamente.');
     
-    // --- AQUÍ ESTÁ LA MAGIA DE LIMPIEZA ---
+    // 1. Limpiamos las cajas de texto del hijo
     document.getElementById('fam_hijo_nombre').value = '';
     document.getElementById('fam_hijo_tel').value = '';
     if (inputFecha) inputFecha.value = ''; 
     
-    // Mantenemos al padre seleccionado (es más cómodo para registrar varios hijos del mismo padre)
-    // Pero recargamos la lista de hijos para que aparezca el nuevo
-    cargarFamiliaSeleccionada(); 
-    // --------------------------------------
+    // 2. Limpiamos el selector del apoderado (lo regresamos a la opción por defecto)
+    const selectTutor = document.getElementById('fam_tutor');
+    if (selectTutor) {
+      selectTutor.value = '';
+    }
+
+    // 3. Limpiamos el panel derecho (donde salía la lista de hijos)
+    document.getElementById('detalle-familia').innerHTML = '<p style="color: #777;">Seleccione un apoderado para ver a sus hijos.</p>';
+    
+    // NOTA: Ya no llamamos a cargarFamiliaSeleccionada() para que no vuelva a cargar los datos del mismo padre.
   }
 }
 
