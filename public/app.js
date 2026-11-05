@@ -1764,9 +1764,8 @@ async function registrarHijo() {
   const nombre = document.getElementById('fam_hijo_nombre').value;
   const telefono = document.getElementById('fam_hijo_tel').value;
   
-  // Capturamos el input de la fecha
+  // CAPTURAMOS LA FECHA DEL CALENDARIO
   const inputFecha = document.getElementById('fam_hijo_nacimiento');
-  // Leemos su valor
   const fecha_nacimiento = inputFecha ? inputFecha.value : null; 
 
   if (!tutor_id) {
@@ -1779,7 +1778,7 @@ async function registrarHijo() {
     return;
   }
 
-  // Enviamos la petición al backend
+  // ENVIAMOS LA FECHA AL SERVIDOR
   const res = await fetch(`${API}/usuarios/hijo`, {
     method: 'POST',
     headers: headers(),
@@ -1801,7 +1800,7 @@ async function registrarHijo() {
     // Limpiamos las cajas
     document.getElementById('fam_hijo_nombre').value = '';
     document.getElementById('fam_hijo_tel').value = '';
-    if (inputFecha) inputFecha.value = ''; 
+    if (inputFecha) inputFecha.value = ''; // Limpiamos la fecha
     
     cargarFamiliaSeleccionada(); 
   }

@@ -124,12 +124,16 @@ router.put('/:id/editar', permitirRoles('admin'), async (req, res) => {
 // Ruta para crear un jugador (hijo) sin usuario de login
 // Crear hijo (Guardamos la fecha en 'categoria' con un separador)
 // Crear hijo
+// Crear hijo
 router.post('/hijo', permitirRoles('admin', 'entrenador'), async (req, res) => {
   try {
+    // 1. Recibimos la fecha del frontend
     const { nombre, telefono, tutor_id, fecha_nacimiento } = req.body; 
+    
+    // 2. Le damos formato
     const fechaFinal = fecha_nacimiento ? fecha_nacimiento.split('T')[0] : 'Sin fecha';
 
-    // Guardamos la fecha en el campo 'posicion' (que existe en tu tabla)
+    // 3. Guardamos en 'posicion' (que sabemos que existe y no da error)
     const [result] = await pool.query(
       `INSERT INTO jugadores (nombre_completo, telefono, tutor_id, posicion) 
        VALUES (?, ?, ?, ?)`,
