@@ -2100,3 +2100,139 @@ async function eliminarHijo(id) {
     alert('Error al eliminar: ' + (data.error || 'Revisa la consola.'));
   }
 }
+
+
+async function verCumpleanosDelMes() {
+  // 1. Obtenemos el mes actual (0 = Enero, 11 = Diciembre)
+  const hoy = new Date();
+  const mesActual = hoy.getMonth(); 
+  const nombreMeses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  const nombreMes = nombreMeses[mesActual];
+
+  // 2. Obtenemos todos los hijos registrados en el sistema
+  const res = await fetch(`${API}/usuarios`, { headers: headers() });
+  const usuarios = await res.json();
+  
+  // Buscamos a todos los jugadores
+  const resJugadores = await fetch(`${API}/usuarios/jugadores`, { headers: headers() });
+  const jugadores = await resJugadores.json();
+
+  let cumpleaneros = [];
+
+  // 3. Filtramos a los que cumplen años este mes
+  for (const j of jugadores) {
+    // Buscamos el perfil completo del jugador para ver su fecha (que guardamos en 'posicion' o 'nombre')
+    // Hacemos una petición al backend para obtener sus datos (necesitamos el endpoint GET /hijos/:tutor_id)
+    // Para evitar muchas peticiones, buscaremos a todos los que tengan '|' en el nombre
+  }
+
+  // Como los datos vienen de Familias, haremos una búsqueda general.
+  // (Nota: Para que esto funcione rápido, necesitamos que la ruta GET /jugadores envíe la fecha)
+  
+  // Vamos a obtener los datos desde la tabla de hijos directamente
+  // Como el sistema no tiene una ruta que traiga a TODOS los hijos con su fecha, 
+  // usaremos un pequeño truco consultando a los padres.
+  
+  const resPadres = await fetch(`${API}/usuarios`, { headers: headers() });
+  const todosUsuarios = await resPadres.json();
+  const padres = todosUsuarios.filter(u => u.rol === 'padre');
+
+  for (const p of padres) {
+    const resHijos = await fetch(`${API}/usuarios/hijos/${p.id}`, { headers: headers() });
+    const hijos = await resHijos.json();
+    
+    hijos.forEach(h => {
+      let fechaStr = '';
+      let nombreLimpio = h.nombre_completo;
+
+      // Extraemos la fecha del nombre o de posicion
+      if (h.nombre_completo && h.nombre_completo.includes('|')) {
+        const partes = h.nombre_completo.split('|');
+        nombreLimpio = partes[0].trim();
+        fechaStr = partes[1].trim();
+      } else if (h.posicion) {
+        fechaStr = h.posicion;
+      }
+
+      // Si tiene fecha válida, verificamos el mes
+      if (fechaStr && fechaStr !== 'Sin fecha' && fechaStr !== 'N/A') {
+        const fechaNac = new Date(fechaStr + 'T00:00:00');
+        if (fechaNac.getMonth() === mesActual) {
+          // Calculamos la edad que cumplirá
+          let edad = hoy.getFullYear() - fechaNac.getFullYear();
+          
+          cumpleaneros.push({
+            nombre: nombreLimpio,
+            dia: fechaNac.getDate(),
+            edad: edad,
+            telefono: h.telefono || 'Sin teléfono',
+            padre: p.nombre
+          });
+        }
+      }
+    });
+  }
+
+  // 4. Ordenamos por día de cumpleaños
+  cumpleaneros.sort((a, b) => a.dia - b.dia);
+
+  // 5. Abrimos la ventana con el reporte
+  const ventana = window.open('', '_blank');
+  let html = `
+    <html>
+    <head>
+      <title>Cumpleaños de ${nombreMes}</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h1 { color: #e67e22; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #e67e22; color: white; }
+        .alerta { background: #fff3cd; color: #856404; padding: 15px; border-radius: 8px; text-align: center; font-size: 1.2em; margin-bottom: 20px;}
+      </style>
+    </head>
+    <body>
+      <h1>🎂 Cumpleaños de ${nombreMes}</h1>
+      <div class="alerta">
+        ¡Hay <strong>${cumpleaneros.length}</strong> alumno(s) que celebran su cumpleaños este mes!
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Día</th>
+            <th>Nombre del Alumno</th>
+            <th>Cumple</th>
+            <th>Apoderado</th>
+            <th>Contacto</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  if (cumpleaneros.length === 0) {
+    html += `<tr><td colspan="5" style="text-align:center;">No hay cumpleaños este mes.</td></tr>`;
+  } else {
+    cumpleaneros.forEach(c => {
+      html += `
+        <tr>
+          <td><strong>${c.dia}</strong></td>
+          <td>${c.nombre}</td>
+          <td>${c.edad} años</td>
+          <td>${c.padre}</td>
+          <td>${c.telefono}</td>
+        </tr>
+      `;
+    });
+  }
+
+  html += `
+        </tbody>
+      </table>
+      <script>window.onload = function() { window.print(); }</script>
+    </body>
+    </html>
+  `;
+
+  ventana.document.write(html);
+  ventana.document.close();
+}

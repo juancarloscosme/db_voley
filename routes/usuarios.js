@@ -198,4 +198,19 @@ router.put('/hijos/:id', permitirRoles('admin', 'entrenador'), async (req, res) 
     res.status(500).json({ error: err.message });
   }
 });
+
+
+// Obtener TODOS los hijos con sus datos (para cumpleaños)
+router.get('/todos-hijos', permitirRoles('admin', 'entrenador'), async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT j.id, j.nombre_completo, j.telefono, j.posicion, u.nombre AS nombre_padre, u.telefono AS tel_padre 
+       FROM jugadores j 
+       LEFT JOIN usuarios u ON j.tutor_id = u.id`
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 module.exports = router;
