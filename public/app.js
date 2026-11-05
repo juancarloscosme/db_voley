@@ -1840,8 +1840,8 @@ async function cargarFamiliaSeleccionada() {
           <div>
             <strong>${h.nombre_completo}</strong> <br>
             <span style="font-size: 0.85em; color: #666;">
-              <!-- AQUÍ CAMBIAMOS fecha_nacimiento POR categoria -->
-              🎂 ${h.categoria ? h.categoria : 'Sin fecha'} | 📱 ${h.telefono || 'Sin teléfono'}
+              <!-- AQUÍ ESTÁ EL CAMBIO: Leemos de 'posicion' -->
+              🎂 ${h.posicion ? h.posicion.split('T')[0] : 'Sin fecha'} | 📱 ${h.telefono || 'Sin teléfono'}
             </span>
           </div>
           <div style="display: flex; gap: 8px; align-items: center;">
@@ -1971,11 +1971,13 @@ async function descargarPDFFamilia() {
   `;
 
   hijos.forEach((h, index) => {
-    // LEEMOS LA FECHA DEL CAMPO 'categoria'
-    let fechaNacStr = h.categoria || 'N/A';
+    // LEEMOS LA FECHA DEL CAMPO 'posicion'
+    let fechaNacStr = h.posicion || 'N/A';
     let edad = 'N/A';
     
     if (fechaNacStr !== 'N/A' && fechaNacStr !== 'Sin fecha') {
+      // Cortamos por si viene con hora
+      fechaNacStr = fechaNacStr.split('T')[0]; 
       const nacimiento = new Date(fechaNacStr + 'T00:00:00');
       const hoy = new Date();
       let edadCalculada = hoy.getFullYear() - nacimiento.getFullYear();

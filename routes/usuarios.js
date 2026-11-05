@@ -123,17 +123,19 @@ router.put('/:id/editar', permitirRoles('admin'), async (req, res) => {
 
 // Ruta para crear un jugador (hijo) sin usuario de login
 // Crear hijo (Guardamos la fecha en 'categoria' con un separador)
+// Crear hijo
 router.post('/hijo', permitirRoles('admin', 'entrenador'), async (req, res) => {
   try {
     const { nombre, telefono, tutor_id, fecha_nacimiento } = req.body; 
     const fechaFinal = fecha_nacimiento ? fecha_nacimiento.split('T')[0] : 'Sin fecha';
-    
-    // Guardamos la fecha en el campo categoria (que sí existe en GoDaddy)
+
+    // Guardamos la fecha en el campo 'posicion' (que existe en tu tabla)
     const [result] = await pool.query(
-      `INSERT INTO jugadores (nombre_completo, telefono, tutor_id, categoria) 
+      `INSERT INTO jugadores (nombre_completo, telefono, tutor_id, posicion) 
        VALUES (?, ?, ?, ?)`,
       [nombre, telefono || null, tutor_id, fechaFinal]
     );
+    
     res.json({ mensaje: 'Hijo registrado correctamente', id: result.insertId });
   } catch (err) {
     res.status(500).json({ error: err.message });
