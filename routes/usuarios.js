@@ -127,17 +127,18 @@ router.put('/:id/editar', permitirRoles('admin'), async (req, res) => {
 // Crear hijo
 router.post('/hijo', permitirRoles('admin', 'entrenador'), async (req, res) => {
   try {
-    // 1. Recibimos la fecha del frontend
     const { nombre, telefono, tutor_id, fecha_nacimiento } = req.body; 
     
-    // 2. Le damos formato
+    // 1. Preparamos la fecha
     const fechaFinal = fecha_nacimiento ? fecha_nacimiento.split('T')[0] : 'Sin fecha';
+    
+    // 2. Guardamos el nombre y la fecha juntos en el campo nombre_completo
+    const nombreConFecha = `${nombre} | ${fechaFinal}`;
 
-    // 3. Guardamos en 'posicion' (que sabemos que existe y no da error)
     const [result] = await pool.query(
-      `INSERT INTO jugadores (nombre_completo, telefono, tutor_id, posicion) 
-       VALUES (?, ?, ?, ?)`,
-      [nombre, telefono || null, tutor_id, fechaFinal]
+      `INSERT INTO jugadores (nombre_completo, telefono, tutor_id) 
+       VALUES (?, ?, ?)`,
+      [nombreConFecha, telefono || null, tutor_id]
     );
     
     res.json({ mensaje: 'Hijo registrado correctamente', id: result.insertId });

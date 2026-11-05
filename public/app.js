@@ -1834,13 +1834,22 @@ async function cargarFamiliaSeleccionada() {
   } else {
     html += '<ul style="list-style: none; padding: 0;">';
     hijos.forEach(h => {
+      // 1. Separamos el nombre y la fecha
+      let nombreLimpio = h.nombre_completo;
+      let fechaMostrar = 'Sin fecha';
+      
+      if (h.nombre_completo && h.nombre_completo.includes('|')) {
+        const partes = h.nombre_completo.split('|');
+        nombreLimpio = partes[0].trim();
+        fechaMostrar = partes[1].trim();
+      }
+
       html += `
         <li style="padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
           <div>
-            <strong>${h.nombre_completo}</strong> <br>
+            <strong>${nombreLimpio}</strong> <br>
             <span style="font-size: 0.85em; color: #666;">
-              <!-- AQUÍ ESTÁ EL CAMBIO: Leemos de 'posicion' -->
-              🎂 ${h.posicion ? h.posicion.split('T')[0] : 'Sin fecha'} | 📱 ${h.telefono || 'Sin teléfono'}
+              🎂 ${fechaMostrar} | 📱 ${h.telefono || 'Sin teléfono'}
             </span>
           </div>
           <div style="display: flex; gap: 8px; align-items: center;">
@@ -1970,13 +1979,20 @@ async function descargarPDFFamilia() {
   `;
 
   hijos.forEach((h, index) => {
-    // LEEMOS LA FECHA DEL CAMPO 'posicion'
-    let fechaNacStr = h.posicion || 'N/A';
+    // 1. Separamos el nombre y la fecha para el PDF
+    let nombreLimpio = h.nombre_completo || 'Sin nombre';
+    let fechaNacStr = 'N/A';
     let edad = 'N/A';
     
+    // Verificamos si el nombre tiene el separador '|'
+    if (h.nombre_completo && h.nombre_completo.includes('|')) {
+      const partes = h.nombre_completo.split('|');
+      nombreLimpio = partes[0].trim();
+      fechaNacStr = partes[1].trim();
+    }
+
+    // 2. Calculamos la edad
     if (fechaNacStr !== 'N/A' && fechaNacStr !== 'Sin fecha') {
-      // Cortamos por si viene con hora
-      fechaNacStr = fechaNacStr.split('T')[0]; 
       const nacimiento = new Date(fechaNacStr + 'T00:00:00');
       const hoy = new Date();
       let edadCalculada = hoy.getFullYear() - nacimiento.getFullYear();
@@ -1991,7 +2007,7 @@ async function descargarPDFFamilia() {
     html += `
       <tr>
         <td>${index + 1}</td>
-        <td>${h.nombre_completo}</td>
+        <td>${nombreLimpio}</td>
         <td>${fechaNacStr}</td>
         <td>${edad}</td>
         <td>${h.telefono || 'N/A'}</td>
