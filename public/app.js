@@ -1777,6 +1777,19 @@ async function registrarHijo() {
     return;
   }
 
+  // --- NUEVA VALIDACIÓN DE AÑO ---
+  if (fecha_nacimiento) {
+    const anio = parseInt(fecha_nacimiento.split('-')[0]);
+    const anioActual = new Date().getFullYear();
+    
+    // Si el año tiene menos de 4 dígitos o es mayor al año actual (o muy antiguo)
+    if (anio < 1900 || anio > anioActual) {
+      alert('⚠️ Por favor, ingresa un año de nacimiento válido.');
+      return;
+    }
+  }
+  // -------------------------------
+
   const res = await fetch(`${API}/usuarios/hijo`, {
     method: 'POST',
     headers: headers(),
@@ -1790,21 +1803,14 @@ async function registrarHijo() {
   } else {
     alert('✅ Hijo registrado exitosamente.');
     
-    // 1. Limpiamos las cajas de texto del hijo
     document.getElementById('fam_hijo_nombre').value = '';
     document.getElementById('fam_hijo_tel').value = '';
     if (inputFecha) inputFecha.value = ''; 
     
-    // 2. Limpiamos el selector del apoderado (lo regresamos a la opción por defecto)
     const selectTutor = document.getElementById('fam_tutor');
-    if (selectTutor) {
-      selectTutor.selectedIndex = 0; // En lugar de value='', seleccionamos la primera opción (la de "Seleccione...")
-    }
+    if (selectTutor) selectTutor.selectedIndex = 0; 
 
-    // 3. Limpiamos el panel derecho (donde salía la lista de hijos)
     document.getElementById('detalle-familia').innerHTML = '<p style="color: #777;">Seleccione un apoderado para ver a sus hijos.</p>';
-    
-    // NOTA: Ya no llamamos a cargarFamiliaSeleccionada() para que no vuelva a cargar los datos del mismo padre.
   }
 }
 
