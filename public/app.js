@@ -1765,7 +1765,7 @@ async function registrarHijo() {
   const telefono = document.getElementById('fam_hijo_tel').value;
   const inputFecha = document.getElementById('fam_hijo_nacimiento');
   const fecha_nacimiento = inputFecha ? inputFecha.value : null; 
-  const foto_url = document.getElementById('fam_hijo_foto').value; // <-- NUEVO
+  const foto_url = document.getElementById('fam_hijo_foto').value;
 
   if (!tutor_id || !nombre) {
     alert('Por favor, selecciona al apoderado y pon el nombre del hijo.');
@@ -1784,7 +1784,7 @@ async function registrarHijo() {
   const res = await fetch(`${API}/usuarios/hijo`, {
     method: 'POST',
     headers: headers(),
-    body: JSON.stringify({ nombre, telefono, tutor_id, fecha_nacimiento, foto_url }) // <-- Enviamos foto
+    body: JSON.stringify({ nombre, telefono, tutor_id, fecha_nacimiento, foto_url })
   });
 
   const data = await res.json();
@@ -1795,7 +1795,7 @@ async function registrarHijo() {
     alert('✅ Hijo registrado exitosamente.');
     document.getElementById('fam_hijo_nombre').value = '';
     document.getElementById('fam_hijo_tel').value = '';
-    document.getElementById('fam_hijo_foto').value = ''; // <-- Limpiamos
+    document.getElementById('fam_hijo_foto').value = '';
     if (inputFecha) inputFecha.value = ''; 
     
     const selectTutor = document.getElementById('fam_tutor');
@@ -1833,17 +1833,12 @@ async function cargarFamiliaSeleccionada() {
   } else {
     html += '<ul style="list-style: none; padding: 0;">';
     hijos.forEach(h => {
-      // 1. Separamos el nombre y la fecha
-       // Busca esta parte dentro de cargarFamiliaSeleccionada:
       let nombreLimpio = h.nombre_completo;
       let fechaMostrar = 'Sin fecha';
       
-      if (h.nombre_completo && h.nombre_completo.includes('|')) {
-        const partes = h.nombre_completo.split('|');
-        nombreLimpio = partes[0].trim();
-        fechaMostrar = partes[1].trim();
-      } else if (h.categoria) {
-        fechaMostrar = h.categoria; // <--- Leemos de categoria
+      // Leemos la fecha desde 'categoria' (donde la guarda el backend)
+      if (h.categoria && h.categoria !== 'Sin fecha') {
+        fechaMostrar = h.categoria; 
       }
 
       html += `
@@ -1856,10 +1851,7 @@ async function cargarFamiliaSeleccionada() {
           </div>
           <div style="display: flex; gap: 8px; align-items: center;">
             <span style="font-size: 0.8em; color: #3498db; cursor: pointer;" onclick="mostrar('expediente'); document.getElementById('exp_jugador').value=${h.id}; cargarExpediente();">Ver Expediente 👉</span>
-            
-            <!-- BOTÓN DE IMPRIMIR FICHA -->
             <button onclick="imprimirFicha(${h.id})" style="background: #f39c12; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Imprimir Ficha">🖨️</button>
-            
             <button onclick="editarHijo(${h.id})" style="background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Editar datos">✏️</button>
             <button onclick="eliminarHijo(${h.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Eliminar">❌</button>
           </div>
@@ -2231,24 +2223,18 @@ async function imprimirFicha(id) {
 
   if (!h) return alert('No se encontraron los datos.');
 
-  // Obtenemos el apoderado
   const resUsers = await fetch(`${API}/usuarios`, { headers: headers() });
   const usuarios = await resUsers.json();
   const padre = usuarios.find(u => u.id == tutor_id);
 
-  // Separamos fecha y nombre
   let nombreLimpio = h.nombre_completo;
   let fechaNacStr = 'Sin fecha';
-  if (h.nombre_completo && h.nombre_completo.includes('|')) {
-    const partes = h.nombre_completo.split('|');
-    nombreLimpio = partes[0].trim();
-    fechaNacStr = partes[1].trim();
-  } else if (h.categoria) {
-    // Si la fecha se guardó en 'categoria'
+  
+  // Leemos la fecha de 'categoria'
+  if (h.categoria && h.categoria !== 'Sin fecha') {
     fechaNacStr = h.categoria;
   }
 
-  // Calculamos edad
   let edad = 'N/A';
   if (fechaNacStr !== 'Sin fecha') {
     const nacimiento = new Date(fechaNacStr + 'T00:00:00');
@@ -2259,24 +2245,19 @@ async function imprimirFicha(id) {
     edad = edadCalculada + ' años';
   }
 
-  // Imagen por defecto si no hay foto (AHORA LEE DE 'posicion')
- // const fotoUrl = h.posicion ? h.posicion : 'https://via.placeholder.com/150x200?text=Sin+Foto';
- // Y reemplázala por esta lógica que arregla el enlace de Drive:
-let fotoUrl = 'https://via.placeholder.com/150x200?text=Sin+Foto';
-  
+  // Lógica para arreglar el link de Google Drive
+  let fotoUrl = 'https://via.placeholder.com/150x200?text=Sin+Foto';
   if (h.posicion && h.posicion !== 'Sin foto') {
     if (h.posicion.includes('drive.google.com')) {
-      // Si es de Google Drive, extraemos el ID y usamos el enlace directo
       const idDrive = h.posicion.match(/\/d\/([a-zA-Z0-9_-]+)/);
       if (idDrive && idDrive[1]) {
         fotoUrl = `https://drive.google.com/thumbnail?id=${idDrive[1]}&sz=w400`;
       }
     } else {
-      // Si es un enlace normal (Imgur, etc.), lo usamos tal cual
       fotoUrl = h.posicion;
- }
+    }
   }
- 
+
   const ventana = window.open('', '_blank');
   let html = `
     <html>
