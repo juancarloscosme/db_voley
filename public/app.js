@@ -1834,6 +1834,7 @@ async function cargarFamiliaSeleccionada() {
     html += '<ul style="list-style: none; padding: 0;">';
     hijos.forEach(h => {
       // 1. Separamos el nombre y la fecha
+       // Busca esta parte dentro de cargarFamiliaSeleccionada:
       let nombreLimpio = h.nombre_completo;
       let fechaMostrar = 'Sin fecha';
       
@@ -1841,6 +1842,8 @@ async function cargarFamiliaSeleccionada() {
         const partes = h.nombre_completo.split('|');
         nombreLimpio = partes[0].trim();
         fechaMostrar = partes[1].trim();
+      } else if (h.categoria) {
+        fechaMostrar = h.categoria; // <--- Leemos de categoria
       }
 
       html += `
@@ -2257,8 +2260,22 @@ async function imprimirFicha(id) {
   }
 
   // Imagen por defecto si no hay foto (AHORA LEE DE 'posicion')
-  const fotoUrl = h.posicion ? h.posicion : 'https://via.placeholder.com/150x200?text=Sin+Foto';
+ // const fotoUrl = h.posicion ? h.posicion : 'https://via.placeholder.com/150x200?text=Sin+Foto';
+ // Y reemplázala por esta lógica que arregla el enlace de Drive:
+let fotoUrl = 'https://via.placeholder.com/150x200?text=Sin+Foto';
+  
+  if (h.posicion && h.posicion !== 'Sin foto') {
+    if (h.posicion.includes('drive.google.com')) {
+      // Si es de Google Drive, extraemos el ID y usamos el enlace directo
+      const idDrive = h.posicion.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      if (idDrive && idDrive[1]) {
+        fotoUrl = `https://drive.google.com/thumbnail?id=${idDrive[1]}&sz=w400`;
+      }
+    } else {
+      // Si es un enlace normal (Imgur, etc.), lo usamos tal cual
+      fotoUrl = h.posicion;
 
+ 
   const ventana = window.open('', '_blank');
   let html = `
     <html>

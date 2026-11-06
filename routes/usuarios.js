@@ -128,15 +128,20 @@ router.put('/:id/editar', permitirRoles('admin'), async (req, res) => {
 // Crear hijo (Guardamos fecha en 'posicion' y foto en 'dorsal')
 router.post('/hijo', permitirRoles('admin', 'entrenador'), async (req, res) => {
   try {
+    // 1. Recibimos todos los datos
     const { nombre, telefono, tutor_id, fecha_nacimiento, foto_url } = req.body; 
+    
+    // 2. Formateamos la fecha y la foto
     const fechaFinal = fecha_nacimiento ? fecha_nacimiento.split('T')[0] : 'Sin fecha';
+    const fotoFinal = foto_url ? foto_url : 'Sin foto';
 
-    // Guardamos fecha en 'categoria' y foto en 'posicion' (ambos son texto)
+    // 3. Guardamos: fecha en 'categoria' y foto en 'posicion'
     const [result] = await pool.query(
       `INSERT INTO jugadores (nombre_completo, telefono, tutor_id, categoria, posicion) 
        VALUES (?, ?, ?, ?, ?)`,
-      [nombre, telefono || null, tutor_id, fechaFinal, foto_url || null]
+      [nombre, telefono || null, tutor_id, fechaFinal, fotoFinal]
     );
+    
     res.json({ mensaje: 'Hijo registrado correctamente', id: result.insertId });
   } catch (err) {
     res.status(500).json({ error: err.message });
