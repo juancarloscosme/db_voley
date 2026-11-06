@@ -131,8 +131,9 @@ router.post('/hijo', permitirRoles('admin', 'entrenador'), async (req, res) => {
     const { nombre, telefono, tutor_id, fecha_nacimiento, foto_url } = req.body; 
     const fechaFinal = fecha_nacimiento ? fecha_nacimiento.split('T')[0] : 'Sin fecha';
 
+    // Guardamos fecha en 'categoria' y foto en 'posicion' (ambos son texto)
     const [result] = await pool.query(
-      `INSERT INTO jugadores (nombre_completo, telefono, tutor_id, posicion, dorsal) 
+      `INSERT INTO jugadores (nombre_completo, telefono, tutor_id, categoria, posicion) 
        VALUES (?, ?, ?, ?, ?)`,
       [nombre, telefono || null, tutor_id, fechaFinal, foto_url || null]
     );

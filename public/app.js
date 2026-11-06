@@ -2240,8 +2240,9 @@ async function imprimirFicha(id) {
     const partes = h.nombre_completo.split('|');
     nombreLimpio = partes[0].trim();
     fechaNacStr = partes[1].trim();
-  } else if (h.posicion) {
-    fechaNacStr = h.posicion;
+  } else if (h.categoria) {
+    // Si la fecha se guardó en 'categoria'
+    fechaNacStr = h.categoria;
   }
 
   // Calculamos edad
@@ -2255,8 +2256,8 @@ async function imprimirFicha(id) {
     edad = edadCalculada + ' años';
   }
 
-  // Imagen por defecto si no hay foto
-  const fotoUrl = h.dorsal ? h.dorsal : 'https://via.placeholder.com/150x200?text=Sin+Foto';
+  // Imagen por defecto si no hay foto (AHORA LEE DE 'posicion')
+  const fotoUrl = h.posicion ? h.posicion : 'https://via.placeholder.com/150x200?text=Sin+Foto';
 
   const ventana = window.open('', '_blank');
   let html = `
