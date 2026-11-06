@@ -129,12 +129,16 @@ router.put('/:id/editar', permitirRoles('admin'), async (req, res) => {
 router.post('/hijo', permitirRoles('admin', 'entrenador'), async (req, res) => {
   try {
     const { nombre, telefono, tutor_id, fecha_nacimiento, foto_url } = req.body; 
+    
     const fechaFinal = fecha_nacimiento ? fecha_nacimiento.split('T')[0] : 'Sin fecha';
+    // Juntamos nombre y fecha con el separador '|'
+    const nombreConFecha = `${nombre} | ${fechaFinal}`;
+    const fotoFinal = foto_url || 'Sin foto';
 
     const [result] = await pool.query(
-      `INSERT INTO jugadores (nombre_completo, telefono, tutor_id, categoria, posicion) 
-       VALUES (?, ?, ?, ?, ?)`,
-      [nombre, telefono || null, tutor_id, fechaFinal, foto_url || 'Sin foto']
+      `INSERT INTO jugadores (nombre_completo, telefono, tutor_id, posicion) 
+       VALUES (?, ?, ?, ?)`,
+      [nombreConFecha, telefono || null, tutor_id, fotoFinal]
     );
     
     res.json({ mensaje: 'Hijo registrado correctamente', id: result.insertId });

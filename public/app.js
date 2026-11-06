@@ -1767,18 +1767,12 @@ async function registrarHijo() {
   const fecha_nacimiento = inputFecha ? inputFecha.value : null; 
   const foto_url = document.getElementById('fam_hijo_foto').value;
 
-  if (!tutor_id || !nombre) {
-    alert('Por favor, selecciona al apoderado y pon el nombre del hijo.');
-    return;
-  }
-
+  if (!tutor_id || !nombre) return alert('Selecciona al apoderado y pon el nombre del hijo.');
+  
   if (fecha_nacimiento) {
     const anio = parseInt(fecha_nacimiento.split('-')[0]);
     const anioActual = new Date().getFullYear();
-    if (anio < 1900 || anio > anioActual) {
-      alert('⚠️ Por favor, ingresa un año de nacimiento válido.');
-      return;
-    }
+    if (anio < 1900 || anio > anioActual) return alert('⚠️ Año de nacimiento inválido.');
   }
 
   const res = await fetch(`${API}/usuarios/hijo`, {
@@ -1836,9 +1830,10 @@ async function cargarFamiliaSeleccionada() {
       let nombreLimpio = h.nombre_completo;
       let fechaMostrar = 'Sin fecha';
       
-      // Leemos la fecha desde 'categoria' (donde la guarda el backend)
-      if (h.categoria && h.categoria !== 'Sin fecha') {
-        fechaMostrar = h.categoria; 
+      if (h.nombre_completo && h.nombre_completo.includes('|')) {
+        const partes = h.nombre_completo.split('|');
+        nombreLimpio = partes[0].trim();
+        fechaMostrar = partes[1].trim();
       }
 
       html += `
@@ -2227,14 +2222,17 @@ async function imprimirFicha(id) {
   const usuarios = await resUsers.json();
   const padre = usuarios.find(u => u.id == tutor_id);
 
+  // --- AQUÍ SEPARAMOS EL NOMBRE Y LA FECHA ---
   let nombreLimpio = h.nombre_completo;
   let fechaNacStr = 'Sin fecha';
   
-  // Leemos la fecha de 'categoria'
-  if (h.categoria && h.categoria !== 'Sin fecha') {
-    fechaNacStr = h.categoria;
+  if (h.nombre_completo && h.nombre_completo.includes('|')) {
+    const partes = h.nombre_completo.split('|');
+    nombreLimpio = partes[0].trim();
+    fechaNacStr = partes[1].trim();
   }
 
+  // Calculamos edad
   let edad = 'N/A';
   if (fechaNacStr !== 'Sin fecha') {
     const nacimiento = new Date(fechaNacStr + 'T00:00:00');
@@ -2245,7 +2243,7 @@ async function imprimirFicha(id) {
     edad = edadCalculada + ' años';
   }
 
-  // Lógica para arreglar el link de Google Drive
+  // Arreglamos el enlace de Google Drive
   let fotoUrl = 'https://via.placeholder.com/150x200?text=Sin+Foto';
   if (h.posicion && h.posicion !== 'Sin foto') {
     if (h.posicion.includes('drive.google.com')) {
