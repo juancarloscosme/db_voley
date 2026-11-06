@@ -125,23 +125,34 @@ router.put('/:id/editar', permitirRoles('admin'), async (req, res) => {
 // Crear hijo (Guardamos la fecha en 'categoria' con un separador)
 // Crear hijo
 // Crear hijo
+// Crear hijo (Guardamos fecha en 'posicion' y foto en 'dorsal')
 router.post('/hijo', permitirRoles('admin', 'entrenador'), async (req, res) => {
   try {
-    const { nombre, telefono, tutor_id, fecha_nacimiento } = req.body; 
-    
-    // 1. Preparamos la fecha
+    const { nombre, telefono, tutor_id, fecha_nacimiento, foto_url } = req.body; 
     const fechaFinal = fecha_nacimiento ? fecha_nacimiento.split('T')[0] : 'Sin fecha';
-    
-    // 2. Guardamos el nombre y la fecha juntos en el campo nombre_completo
-    const nombreConFecha = `${nombre} | ${fechaFinal}`;
 
     const [result] = await pool.query(
-      `INSERT INTO jugadores (nombre_completo, telefono, tutor_id) 
-       VALUES (?, ?, ?)`,
-      [nombreConFecha, telefono || null, tutor_id]
+      `INSERT INTO jugadores (nombre_completo, telefono, tutor_id, posicion, dorsal) 
+       VALUES (?, ?, ?, ?, ?)`,
+      [nombre, telefono || null, tutor_id, fechaFinal, foto_url || null]
     );
-    
     res.json({ mensaje: 'Hijo registrado correctamente', id: result.insertId });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Editar hijo (Actualizamos los datos incluyendo la foto)
+router.put('/hijos/:id', permitirRoles('admin', 'entrenador'), async (req, res) => {
+  try {
+    const { nombre_completo, telefono, fecha_nacimiento, foto_url } = req.body;
+    const fechaFinal = fecha_nacimiento ? fecha_nacimiento.split('T')[0] : 'Sin fecha';
+
+    await pool.query(
+      `UPDATE jugadores SET nombre_completo = ?, telefono = ?, posicion = ?, dorsal = ? WHERE id = ?`,
+      [nombre_completo, telefono || null, fechaFinal, foto_url || null, req.params.id]
+    );
+    res.json({ mensaje: 'Hijo actualizado correctamente' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

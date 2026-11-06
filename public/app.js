@@ -1763,37 +1763,28 @@ async function registrarHijo() {
   const tutor_id = document.getElementById('fam_tutor').value;
   const nombre = document.getElementById('fam_hijo_nombre').value;
   const telefono = document.getElementById('fam_hijo_tel').value;
-  
   const inputFecha = document.getElementById('fam_hijo_nacimiento');
   const fecha_nacimiento = inputFecha ? inputFecha.value : null; 
+  const foto_url = document.getElementById('fam_hijo_foto').value; // <-- NUEVO
 
-  if (!tutor_id) {
-    alert('Por favor, primero selecciona al apoderado en el paso 1.');
+  if (!tutor_id || !nombre) {
+    alert('Por favor, selecciona al apoderado y pon el nombre del hijo.');
     return;
   }
 
-  if (!nombre) {
-    alert('Por favor, ingresa el nombre del hijo.');
-    return;
-  }
-
-  // --- NUEVA VALIDACIÓN DE AÑO ---
   if (fecha_nacimiento) {
     const anio = parseInt(fecha_nacimiento.split('-')[0]);
     const anioActual = new Date().getFullYear();
-    
-    // Si el año tiene menos de 4 dígitos o es mayor al año actual (o muy antiguo)
     if (anio < 1900 || anio > anioActual) {
       alert('⚠️ Por favor, ingresa un año de nacimiento válido.');
       return;
     }
   }
-  // -------------------------------
 
   const res = await fetch(`${API}/usuarios/hijo`, {
     method: 'POST',
     headers: headers(),
-    body: JSON.stringify({ nombre, telefono, tutor_id, fecha_nacimiento }) 
+    body: JSON.stringify({ nombre, telefono, tutor_id, fecha_nacimiento, foto_url }) // <-- Enviamos foto
   });
 
   const data = await res.json();
@@ -1802,9 +1793,9 @@ async function registrarHijo() {
     alert('Error al crear al hijo: ' + data.error);
   } else {
     alert('✅ Hijo registrado exitosamente.');
-    
     document.getElementById('fam_hijo_nombre').value = '';
     document.getElementById('fam_hijo_tel').value = '';
+    document.getElementById('fam_hijo_foto').value = ''; // <-- Limpiamos
     if (inputFecha) inputFecha.value = ''; 
     
     const selectTutor = document.getElementById('fam_tutor');
@@ -1862,6 +1853,10 @@ async function cargarFamiliaSeleccionada() {
           </div>
           <div style="display: flex; gap: 8px; align-items: center;">
             <span style="font-size: 0.8em; color: #3498db; cursor: pointer;" onclick="mostrar('expediente'); document.getElementById('exp_jugador').value=${h.id}; cargarExpediente();">Ver Expediente 👉</span>
+            
+            <!-- BOTÓN DE IMPRIMIR FICHA -->
+            <button onclick="imprimirFicha(${h.id})" style="background: #f39c12; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Imprimir Ficha">🖨️</button>
+            
             <button onclick="editarHijo(${h.id})" style="background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Editar datos">✏️</button>
             <button onclick="eliminarHijo(${h.id})" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Eliminar">❌</button>
           </div>
@@ -2216,6 +2211,91 @@ async function verCumpleanosDelMes() {
   html += `
         </tbody>
       </table>
+      <script>window.onload = function() { window.print(); }</script>
+    </body>
+    </html>
+  `;
+
+  ventana.document.write(html);
+  ventana.document.close();
+}
+
+async function imprimirFicha(id) {
+  const tutor_id = document.getElementById('fam_tutor').value;
+  const resHijos = await fetch(`${API}/usuarios/hijos/${tutor_id}`, { headers: headers() });
+  const hijos = await resHijos.json();
+  const h = hijos.find(hijo => hijo.id === id);
+
+  if (!h) return alert('No se encontraron los datos.');
+
+  // Obtenemos el apoderado
+  const resUsers = await fetch(`${API}/usuarios`, { headers: headers() });
+  const usuarios = await resUsers.json();
+  const padre = usuarios.find(u => u.id == tutor_id);
+
+  // Separamos fecha y nombre
+  let nombreLimpio = h.nombre_completo;
+  let fechaNacStr = 'Sin fecha';
+  if (h.nombre_completo && h.nombre_completo.includes('|')) {
+    const partes = h.nombre_completo.split('|');
+    nombreLimpio = partes[0].trim();
+    fechaNacStr = partes[1].trim();
+  } else if (h.posicion) {
+    fechaNacStr = h.posicion;
+  }
+
+  // Calculamos edad
+  let edad = 'N/A';
+  if (fechaNacStr !== 'Sin fecha') {
+    const nacimiento = new Date(fechaNacStr + 'T00:00:00');
+    const hoy = new Date();
+    let edadCalculada = hoy.getFullYear() - nacimiento.getFullYear();
+    const mes = hoy.getMonth() - nacimiento.getMonth();
+    if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) edadCalculada--;
+    edad = edadCalculada + ' años';
+  }
+
+  // Imagen por defecto si no hay foto
+  const fotoUrl = h.dorsal ? h.dorsal : 'https://via.placeholder.com/150x200?text=Sin+Foto';
+
+  const ventana = window.open('', '_blank');
+  let html = `
+    <html>
+    <head>
+      <title>Ficha - ${nombreLimpio}</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 30px; }
+        .ficha { border: 2px solid #1f4e79; border-radius: 10px; padding: 20px; max-width: 600px; margin: 0 auto; }
+        h1 { color: #1f4e79; text-align: center; font-size: 22px; border-bottom: 2px solid #1f4e79; padding-bottom: 10px; }
+        .contenido { display: flex; gap: 20px; margin-top: 20px; }
+        .foto { width: 150px; height: 200px; object-fit: cover; border: 1px solid #ccc; border-radius: 8px; }
+        .datos { flex: 1; }
+        .dato { margin-bottom: 10px; font-size: 14px; }
+        .dato strong { color: #1f4e79; }
+        .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #ccc; padding-top: 10px;}
+      </style>
+    </head>
+    <body>
+      <div class="ficha">
+        <h1>🏐 FICHA DE INSCRIPCIÓN - CLUB VÓLEY</h1>
+        <div class="contenido">
+          <img src="${fotoUrl}" class="foto" alt="Foto del alumno">
+          <div class="datos">
+            <div class="dato"><strong>Alumno:</strong> ${nombreLimpio}</div>
+            <div class="dato"><strong>F. Nacimiento:</strong> ${fechaNacStr}</div>
+            <div class="dato"><strong>Edad:</strong> ${edad}</div>
+            <div class="dato"><strong>Teléfono:</strong> ${h.telefono || 'N/A'}</div>
+            <hr style="border: 1px solid #eee; margin: 15px 0;">
+            <div class="dato"><strong>Apoderado:</strong> ${padre.nombre}</div>
+            <div class="dato"><strong>Documento:</strong> ${padre.dni || 'N/A'}</div>
+            <div class="dato"><strong>Dirección:</strong> ${padre.direccion || 'N/A'}</div>
+          </div>
+        </div>
+        <div class="footer">
+          Documento generado por el Sistema de Control del Club Vóley<br>
+          Fecha de emisión: ${new Date().toLocaleDateString('es-PE')}
+        </div>
+      </div>
       <script>window.onload = function() { window.print(); }</script>
     </body>
     </html>

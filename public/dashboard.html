@@ -372,7 +372,7 @@
     </section>
 
     
-    <!-- SECCIÓN DE FAMILIAS -->
+<!-- SECCIÓN DE FAMILIAS -->
     <section id="familias" class="seccion oculto">
       <h2>👨‍👩‍👦 Registro de Familias</h2>
       
@@ -397,6 +397,8 @@
             <input id="edit_telefono" placeholder="Teléfono" style="width: 100%; margin-bottom: 8px;">
             <label style="font-size: 0.9em; color: #555;">Fecha de Nacimiento:</label>
             <input type="date" id="edit_nacimiento" style="width: 100%; margin-bottom: 8px;">
+            <label style="font-size: 0.9em; color: #555;">Enlace de la Foto (URL):</label>
+            <input id="edit_foto" placeholder="Link de la foto" style="width: 100%; margin-bottom: 8px;"> <!-- NUEVO -->
             <button onclick="guardarEdicionHijo()" style="background: #2ecc71; color: white; border: none; padding: 8px; width: 100%; border-radius: 6px; cursor: pointer;">Guardar Cambios</button>
             <button onclick="cancelarEdicionHijo()" style="background: #95a5a6; color: white; border: none; padding: 8px; width: 100%; border-radius: 6px; cursor: pointer; margin-top: 5px;">Cancelar</button>
           </div>
@@ -407,9 +409,12 @@
           <input id="fam_hijo_nombre" placeholder="Nombre completo del hijo" style="width: 100%; margin-bottom: 8px;">
           <input id="fam_hijo_tel" placeholder="Teléfono de contacto (opcional)" style="width: 100%; margin-bottom: 8px;">
           
-                    <!-- NUEVO CAMPO -->
           <label style="font-size: 0.9em; color: #555;">Fecha de Nacimiento:</label>
           <input type="date" id="fam_hijo_nacimiento" style="width: 100%; margin-bottom: 8px;">
+
+          <!-- NUEVO CAMPO PARA LA FOTO -->
+          <label style="font-size: 0.9em; color: #555;">Enlace de la Foto (URL):</label>
+          <input id="fam_hijo_foto" placeholder="Pega el link de la foto aquí" style="width: 100%; margin-bottom: 8px;">
 
           <button onclick="registrarHijo()" style="background: #27ae60; color: white; border: none; padding: 10px; width: 100%; border-radius: 6px; cursor: pointer; font-weight: bold;">
             + Guardar Hijo
@@ -419,7 +424,6 @@
         <!-- COLUMNA 2: DETALLE DE LA FAMILIA -->
         <div style="flex: 2; min-width: 400px; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
           
-
           <!-- BOTÓN DE REPORTE PDF Y CUMPLEAÑOS -->
           <div style="display: flex; gap: 10px;">
             <button onclick="descargarPDFFamilia()" style="background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer;">
@@ -429,7 +433,6 @@
               🎂 Cumpleaños del Mes
             </button>
           </div>
-
 
           <div id="detalle-familia">
             <p style="color: #777;">Seleccione un apoderado para ver a sus hijos.</p>
