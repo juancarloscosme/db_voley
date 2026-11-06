@@ -2274,7 +2274,8 @@ let fotoUrl = 'https://via.placeholder.com/150x200?text=Sin+Foto';
     } else {
       // Si es un enlace normal (Imgur, etc.), lo usamos tal cual
       fotoUrl = h.posicion;
-
+ }
+  }
  
   const ventana = window.open('', '_blank');
   let html = `
