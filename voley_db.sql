@@ -120,3 +120,4 @@ CREATE TABLE evaluaciones (
 -- ============================================
 INSERT INTO usuarios (nombre, email, password_hash, rol, activo) 
 VALUES ('Admin Principal', 'admin@voley.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'admin', 1);
+ALTER TABLE jugadores MODIFY COLUMN posicion VARCHAR(500);
